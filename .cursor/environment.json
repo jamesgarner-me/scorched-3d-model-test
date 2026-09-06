@@ -1,0 +1,17 @@
+{
+  "name": "scorched-3d-model-test",
+  "install": "bash .cursor/install.sh",
+  "terminals": [
+    {
+      "name": "landing dev server",
+      "command": "cd landing && npm run dev",
+      "description": "Next.js dev server for the landing directory page on http://localhost:3000. The model builds under models/* are frozen one-shot snapshots; run one manually with `cd models/<name> && npm run dev` (Vite, http://localhost:5173, astra on 5172) when you need it."
+    }
+  ],
+  "ports": [
+    {
+      "name": "landing",
+      "port": 3000
+    }
+  ]
+}
