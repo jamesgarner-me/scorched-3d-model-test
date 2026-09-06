@@ -68,7 +68,6 @@ list, the structured data, and the Open Graph image all derive from it.
 {
   "folder": "sonnet-5",
   "name": "Sonnet 5",
-  "blurb": "One neutral line on what this build does differently.",
   "status": "live",
   "url": "https://scorched-3d-sonnet-5.vercel.app"
 }

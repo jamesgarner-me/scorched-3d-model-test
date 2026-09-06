@@ -7,8 +7,6 @@ const identity = {
   folder: z.string().regex(/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/, 'must be a lowercase folder name'),
   /** Model name as it should read on the page. */
   name: z.string().min(1),
-  /** One neutral line on what this build does differently. */
-  blurb: z.string().min(1).max(140),
 }
 
 /**

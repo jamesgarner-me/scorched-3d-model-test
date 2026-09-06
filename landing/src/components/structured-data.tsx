@@ -20,7 +20,6 @@ export function StructuredData({ sites }: { sites: readonly ModelSite[] }) {
       '@type': 'ListItem',
       position: index + 1,
       name: site.name,
-      description: site.blurb,
       url: site.url,
     })),
   }

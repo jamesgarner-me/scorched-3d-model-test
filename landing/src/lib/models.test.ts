@@ -5,7 +5,6 @@ import { modelSites, modelSitesSchema } from '@/lib/models'
 const identity = {
   folder: 'opus-5',
   name: 'Opus 5',
-  blurb: 'Terra and Ares worlds, three named opponents, craters that persist all match.',
 }
 
 const live = { ...identity, status: 'live', url: 'https://scorched-3d-opus-5.vercel.app' }
@@ -13,7 +12,6 @@ const live = { ...identity, status: 'live', url: 'https://scorched-3d-opus-5.ver
 const pending = {
   folder: 'sonnet-5',
   name: 'Sonnet 5',
-  blurb: 'Generated but not yet deployed.',
   status: 'pending',
 }
 
@@ -24,6 +22,7 @@ const invalidCases: [description: string, data: unknown][] = [
   ['a pending build with a URL', [{ ...pending, url: 'https://scorched-3d-sonnet-5.vercel.app' }]],
   ['an insecure URL', [{ ...live, url: 'http://scorched-3d-opus-5.vercel.app' }]],
   ['an unrecognised field', [{ ...live, rank: 1 }]],
+  ['a leftover blurb', [{ ...live, blurb: 'one line on what this build does' }]],
   ['an empty directory', []],
 ]
 

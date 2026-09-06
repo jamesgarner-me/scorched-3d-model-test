@@ -40,8 +40,6 @@ function CardContents({ site }: { site: ModelSite }) {
         </span>
       </span>
 
-      <span className="text-sm/relaxed text-foam/65">{site.blurb}</span>
-
       <span className={action({ status: site.status })}>
         {site.status === 'live' ? (
           <>

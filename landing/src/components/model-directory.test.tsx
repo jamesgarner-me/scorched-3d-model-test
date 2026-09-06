@@ -9,21 +9,18 @@ const sites: ModelSite[] = [
   {
     folder: 'grok-4.6',
     name: 'Grok 4.6',
-    blurb: 'A survey-then-fire flow whose trajectory guide hides the landing point.',
     status: 'live',
     url: 'https://scorched-3d-grok-46.vercel.app',
   },
   {
     folder: 'opus-5',
     name: 'Opus 5',
-    blurb: 'Terra and Ares worlds, three named opponents, craters that persist all match.',
     status: 'live',
     url: 'https://scorched-3d-opus-5.vercel.app',
   },
   {
     folder: 'sonnet-5',
     name: 'Sonnet 5',
-    blurb: 'Generated but not yet deployed.',
     status: 'pending',
   },
 ]
