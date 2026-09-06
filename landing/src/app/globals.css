@@ -1,0 +1,25 @@
+@import 'tailwindcss';
+
+/*
+ * Palette and type scale carried over from the model builds, registered as
+ * Tailwind theme tokens so they are available as ordinary utilities
+ * (`bg-void`, `text-amber`, `font-display`) with every variant and modifier,
+ * rather than as bespoke CSS rules.
+ */
+@theme {
+  --color-void: #07080c;
+  --color-ink: #0c1018;
+  --color-amber: #f0b45a;
+  --color-amber-dim: #9a6f2e;
+  --color-copper: #c45c28;
+  --color-foam: #d7ece4;
+
+  --font-display: var(--font-antonio);
+  --font-mono: var(--font-ibm-plex-mono);
+}
+
+@layer base {
+  body {
+    @apply bg-void font-mono text-foam antialiased;
+  }
+}

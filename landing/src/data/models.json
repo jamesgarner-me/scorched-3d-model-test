@@ -1,0 +1,30 @@
+[
+  {
+    "folder": "astra",
+    "name": "Astra",
+    "blurb": "Earth and Mars presets with three AI difficulties, over a single shared simulation core.",
+    "status": "live",
+    "url": "https://scorched-3d-astra.vercel.app"
+  },
+  {
+    "folder": "fable-5.1",
+    "name": "Fable 5.1",
+    "blurb": "Seeded worlds under a layered scene of terrain, water, cloud and atmosphere.",
+    "status": "live",
+    "url": "https://scorched-3d-fable-51.vercel.app"
+  },
+  {
+    "folder": "grok-4.6",
+    "name": "Grok 4.6",
+    "blurb": "A survey-then-fire flow whose trajectory guide deliberately hides the landing point.",
+    "status": "live",
+    "url": "https://scorched-3d-grok-46.vercel.app"
+  },
+  {
+    "folder": "opus-5",
+    "name": "Opus 5",
+    "blurb": "Terra and Ares worlds, three named opponents, and craters that persist all match.",
+    "status": "live",
+    "url": "https://scorched-3d-opus-5.vercel.app"
+  }
+]

@@ -44,4 +44,4 @@ Project names drop the dots from the folder name:
 | `models/opus-5` | https://scorched-3d-opus-5.vercel.app |
 
 `landing/` deploys the same way and lists all of the above. When a new model
-folder is deployed, add it to `modelSites` in `landing/src/models.ts`.
+folder is deployed, add it to `landing/src/data/models.json`.
