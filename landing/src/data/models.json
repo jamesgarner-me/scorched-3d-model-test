@@ -1,0 +1,26 @@
+[
+  {
+    "folder": "astra",
+    "name": "Astra",
+    "status": "live",
+    "url": "https://scorched-3d-astra.vercel.app"
+  },
+  {
+    "folder": "fable-5.1",
+    "name": "Fable 5.1",
+    "status": "live",
+    "url": "https://scorched-3d-fable-51.vercel.app"
+  },
+  {
+    "folder": "grok-4.6",
+    "name": "Grok 4.6",
+    "status": "live",
+    "url": "https://scorched-3d-grok-46.vercel.app"
+  },
+  {
+    "folder": "opus-5",
+    "name": "Opus 5",
+    "status": "live",
+    "url": "https://scorched-3d-opus-5.vercel.app"
+  }
+]
