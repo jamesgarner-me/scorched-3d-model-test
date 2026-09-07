@@ -24,9 +24,6 @@ models/opus-5/      Opus 5 one-shot
 landing/            Directory page linking out to every deployed one-shot
 ```
 
-The bare `astra/`, `fable/` and `opus/` folders predate `models/` and hold
-nothing but a placeholder README.
-
 `landing/` is not part of the comparison, so it is the one folder here that can
 be iterated freely.
 
