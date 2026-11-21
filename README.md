@@ -16,14 +16,15 @@ generates it.
 ## Layout
 
 ```
-docs/PRD.md         Product requirements (copied from the original Scorched 3D PRD)
-docs/prompt.md      Prompt to paste into each model (fill this in before a run)
-models/astra/       Astra one-shot
-models/fable-5.1/   Fable 5.1 one-shot
-models/grok-4.6/    Grok 4.6 one-shot
-models/opus-5/      Opus 5 one-shot
-landing/            Directory page linking out to every deployed one-shot
-scripts/            Tooling for setting up and collecting model tests
+docs/PRD.md              Product requirements (copied from the original Scorched 3D PRD)
+docs/prompt.md           Prompt to paste into each model (fill this in before a run)
+models/astra/            Astra one-shot
+models/fable-5.1/        Fable 5.1 one-shot
+models/gemini-4-argon/   Gemini 4 Argon one-shot
+models/grok-4.6/         Grok 4.6 one-shot
+models/opus-5/           Opus 5 one-shot
+landing/                 Directory page linking out to every deployed one-shot
+scripts/                 Tooling for setting up and collecting model tests
 ```
 
 `landing/` and `scripts/` are not part of the comparison, so they are the
@@ -76,6 +77,7 @@ Project names drop the dots from the folder name:
 | --- | --- |
 | `models/astra` | https://scorched-3d-astra.vercel.app |
 | `models/fable-5.1` | https://scorched-3d-fable-51.vercel.app |
+| `models/gemini-4-argon` | not deployed yet |
 | `models/grok-4.6` | https://scorched-3d-grok-46.vercel.app |
 | `models/opus-5` | https://scorched-3d-opus-5.vercel.app |
 
