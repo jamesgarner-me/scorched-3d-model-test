@@ -38,6 +38,11 @@ user stories.
    real AI, blue fires first, aiming and firing are disabled, camera, pause and
    sound still work, the HUD says it is a demo, and New Match stays in demo.
    Without that query the game is unchanged.
+10. Escape opens a menu at any point in a match, and the winner overlay offers
+    the same choice: start a new match as "you vs computer" or "computer vs
+    computer", current mode marked. Picking one starts a fresh planet in that
+    mode, cancels everything left over from the old match, and updates the URL
+    with `history.replaceState` (no reload).
 
 ## Out of scope
 
@@ -47,5 +52,6 @@ mobile / touch controls. Do not invent features that are not in the PRD.
 ## Done when
 
 A stranger can open the app in Chromium, play a full match against the AI, and
-start a new one — and open `?mode=demo` to watch two AIs play one through —
-without reading the code.
+start a new one — and open `?mode=demo` to watch two AIs play one through, then
+press Escape to switch between the two modes and back — without reading the
+code.
