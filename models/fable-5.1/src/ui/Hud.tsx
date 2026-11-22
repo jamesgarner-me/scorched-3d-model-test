@@ -1,6 +1,6 @@
 import { RAD, toLocalTangent } from '../sim/vec'
 import { game } from '../state/game'
-import { useStore, type Phase } from '../state/store'
+import { DEMO_MODE, tankName, useStore, type Phase } from '../state/store'
 
 const TURN_TEXT: Partial<Record<Phase, string>> = {
   aim: 'Your turn',
@@ -65,15 +65,18 @@ export function Hud() {
   const elevationDeg = Math.round(aim.elevation * RAD)
   const power = Math.round(aim.power * 100)
   const yourTurn = phase === 'aim'
+  // In a demo the "Enemy is…" copy would be wrong half the time, so name the tank whose turn it is.
+  const banner = DEMO_MODE && phase.startsWith('ai') ? `${tankName(turn)} is ${phase === 'ai-think' ? 'thinking…' : 'aiming'}` : (TURN_TEXT[phase] ?? '')
   return (
     <div className="hud">
       <div className="hud-top">
-        <HealthBar label="You" value={health.player} max={maxHealth} side="left" />
+        <HealthBar label={tankName('player')} value={health.player} max={maxHealth} side="left" />
         <div className="turn-banner-wrap">
-          <div className={`turn-banner ${turn === 'player' ? 'you' : 'enemy'} ${yourTurn ? 'pulse' : ''}`}>{TURN_TEXT[phase] ?? ''}</div>
+          {DEMO_MODE && <div className="demo-badge">Demo</div>}
+          <div className={`turn-banner ${turn === 'player' ? 'you' : 'enemy'} ${yourTurn ? 'pulse' : ''}`}>{banner}</div>
           <WindCompass />
         </div>
-        <HealthBar label="Enemy" value={health.ai} max={maxHealth} side="right" />
+        <HealthBar label={tankName('ai')} value={health.ai} max={maxHealth} side="right" />
       </div>
 
       {message && (
@@ -102,7 +105,7 @@ export function Hud() {
           </div>
         </div>
         <div className="hint">
-          {yourTurn ? (charging ? 'Release Space to fire' : 'Arrows aim · hold Space to charge') : phase === 'flight' ? 'Watching the shot…' : phase.startsWith('ai') ? 'Orbit the camera while the enemy aims' : ''}
+          {yourTurn ? (charging ? 'Release Space to fire' : 'Arrows aim · hold Space to charge') : phase === 'flight' ? 'Watching the shot…' : phase.startsWith('ai') ? (DEMO_MODE ? 'Computer vs computer · drag to orbit, Esc to pause' : 'Orbit the camera while the enemy aims') : ''}
         </div>
       </div>
 

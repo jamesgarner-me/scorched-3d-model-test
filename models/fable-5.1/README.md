@@ -19,6 +19,10 @@ npm run build    # static site in dist/ (Vercel: use this folder as the root)
 Add `?debug` to the URL (or run the dev server) and press `` ` `` to open the
 tuning / metrics panel.
 
+Add `?mode=demo` to watch a computer-versus-computer match: both tanks aim and
+fire through the same AI, and you keep the camera. A bare URL is the normal
+player-versus-computer game.
+
 ## Controls
 
 | Key | Action |

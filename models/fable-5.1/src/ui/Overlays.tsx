@@ -1,7 +1,8 @@
 import { DIFFICULTIES } from '../sim/ai'
+import type { TankId } from '../sim/physics'
 import { PRESETS, type PresetId } from '../sim/presets'
 import { game } from '../state/game'
-import { useStore } from '../state/store'
+import { DEMO_MODE, tankName, useStore } from '../state/store'
 
 export function FlyoverBanner() {
   const seed = useStore((s) => s.seed)
@@ -53,11 +54,16 @@ export function EndOverlay() {
   const winner = useStore((s) => s.winner)
   const shots = useStore((s) => s.shotsFired)
   const won = winner === 'player'
+  // A demo has no "you" to win or lose: name the surviving computer and colour the title to match its hull.
+  const loser: TankId = won ? 'ai' : 'player'
+  const tone = DEMO_MODE ? (won ? 'blue' : 'red') : won ? 'victory' : 'defeat'
+  const eyebrow = DEMO_MODE ? `${tankName(loser)} tank destroyed` : won ? 'Enemy tank destroyed' : 'Your tank was destroyed'
+  const title = DEMO_MODE ? `${tankName(won ? 'player' : 'ai')} wins` : won ? 'Victory' : 'Defeat'
   return (
     <div className="screen dim end">
-      <div className={`panel ${won ? 'victory' : 'defeat'}`}>
-        <div className="eyebrow">{won ? 'Enemy tank destroyed' : 'Your tank was destroyed'}</div>
-        <h1>{won ? 'Victory' : 'Defeat'}</h1>
+      <div className={`panel ${tone}`}>
+        <div className="eyebrow">{eyebrow}</div>
+        <h1>{title}</h1>
         <p className="lede">{shots} shots fired this match.</p>
         <button className="primary" onClick={() => game.newMatch()}>New match</button>
         <div className="button-row">
