@@ -29,8 +29,10 @@ off with distance and carve persistent **Craters** into the terrain — except
 under a **Tank footprint** and on **Water**, which only splashes. A three-tier AI
 uses the same physics, learns from its own misses, and misses believably. The
 match ends when a tank hits zero health, with a cinematic destruction sequence
-and a winner overlay offering a fresh match. A development-only debug panel
-exposes the tuning surface live.
+and a winner overlay offering a fresh match. Opening the game with
+`?mode=demo` starts a **Demo**: the same match played computer versus computer,
+with the human as a spectator. A development-only debug panel exposes the
+tuning surface live.
 
 ## User Stories
 
@@ -89,6 +91,13 @@ exposes the tuning surface live.
 53. As a developer, I want the trajectory guide, the live shot, and the AI to all use one shared simulation, so that they can never disagree.
 54. As a developer, I want deterministic, seeded generation, so that a logged seed reproduces a planet for bug reports.
 55. As a developer, I want the game rules and simulation to run headless (no Three.js), so that I can unit-test them.
+56. As a spectator, I want to open the game with `?mode=demo` and watch a computer-versus-computer match, so that I can see a build play itself without touching the controls.
+57. As a spectator, I want both demo tanks to use the same AI, physics, shot variance, and per-tank miss memory as the normal opponent, so that the demo shows the real game rather than a scripted replay.
+58. As a spectator, I want the blue (normally player) tank to still fire first in a demo, so that the turn order matches a normal match.
+59. As a spectator, I want to keep orbiting, panning, and zooming the camera, pausing, and toggling sound during a demo, while aiming and firing inputs are disabled, so that I can watch without interfering.
+60. As a spectator, I want the HUD and winner overlay to say it is a demo and name the tanks by side rather than "you" and "AI", so that the outcome reads correctly.
+61. As a spectator, I want New Match at the end of a demo to start another demo, so that I can keep watching.
+62. As a player, I want the bare URL, or any other query, to start the normal player-versus-computer game unchanged, so that demo mode never gets in the way of playing.
 
 
 ## Further Notes
@@ -101,4 +110,8 @@ exposes the tuning surface live.
   45% guide opacity, etc.) are initial values, tunable via TuningRegistry, not
   hard constraints — except the explicit fixed rules (no crater cap, no crater
   fade, terrain removal only, symmetry not required).
+- Demo mode is selected only by the exact query `mode=demo`, read once at load;
+  the directory site links to each build both bare (Play) and with
+  `?mode=demo` (Demo). A paused demo must not fire, and the AI must not see
+  hidden information about either tank.
   

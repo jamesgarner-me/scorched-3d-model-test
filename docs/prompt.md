@@ -4,7 +4,7 @@ Build a complete, playable browser game from the attached PRD (`docs/PRD.md`).
 
 You are implementing **Planetary Artillery** (Scorched 3D): a client-only,
 turn-based 3D artillery duel on a procedurally generated spherical planet. One
-human tank vs one AI tank. The planet is the puzzle — curvature, gravity, wind,
+human tank vs one AI tank, or AI vs AI in demo mode. The planet is the puzzle — curvature, gravity, wind,
 and terrain. Aim with bearing and elevation, hold Space to charge power, release
 to fire. Shots follow a ballistic arc bent by planet-centred gravity and wind.
 Impacts deal blast damage and carve persistent craters.
@@ -34,6 +34,10 @@ user stories.
    instead).
 7. An AI opponent that uses the same physics and takes a turn after you.
 8. Match ends at zero health, with a winner overlay and New Match.
+9. `?mode=demo` plays the same match computer vs computer: both tanks use the
+   real AI, blue fires first, aiming and firing are disabled, camera, pause and
+   sound still work, the HUD says it is a demo, and New Match stays in demo.
+   Without that query the game is unchanged.
 
 ## Out of scope
 
@@ -43,4 +47,5 @@ mobile / touch controls. Do not invent features that are not in the PRD.
 ## Done when
 
 A stranger can open the app in Chromium, play a full match against the AI, and
-start a new one — without reading the code.
+start a new one — and open `?mode=demo` to watch two AIs play one through —
+without reading the code.
