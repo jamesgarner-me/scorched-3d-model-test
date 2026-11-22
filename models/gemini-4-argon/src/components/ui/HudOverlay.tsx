@@ -31,6 +31,7 @@ interface HudOverlayProps {
   chargingPower: number | null;
   damageBanner: string | null;
   debugOpen: boolean;
+  demoMode?: boolean;
   onSelectPreset: (preset: PlanetPresetId) => void;
   onSelectDifficulty: (diff: AiDifficulty) => void;
   onAdjustAim: (dBearing: number, dElevation: number) => void;
@@ -61,6 +62,7 @@ export const HudOverlay: React.FC<HudOverlayProps> = ({
   chargingPower,
   damageBanner,
   debugOpen,
+  demoMode = false,
   onSelectPreset,
   onSelectDifficulty,
   onAdjustAim,
@@ -80,9 +82,12 @@ export const HudOverlay: React.FC<HudOverlayProps> = ({
   const aiHpPct = Math.max(0, Math.min(100, (ai.health / ai.maxHealth) * 100));
 
   const isPlayerInteractive =
-    currentTurn === 'player' && (phase === 'aiming' || phase === 'charging');
+    !demoMode &&
+    currentTurn === 'player' &&
+    (phase === 'aiming' || phase === 'charging');
 
-  const displayPower = chargingPower !== null ? chargingPower : player.lastPower;
+  const activeTank = demoMode ? tanks[currentTurn] : player;
+  const displayPower = chargingPower !== null ? chargingPower : activeTank.lastPower;
 
   const getTurnStatusText = (): string => {
     if (phase === 'flyover') {
@@ -96,6 +101,11 @@ export const HudOverlay: React.FC<HudOverlayProps> = ({
     }
     if (phase === 'destruction') {
       return 'CRITICAL TARGET DESTRUCTION!';
+    }
+    if (demoMode) {
+      return currentTurn === 'player'
+        ? 'VANGUARD-1 AI AIMING — SPECTATOR DEMO'
+        : 'ARES AUTOMATON AIMING — SPECTATOR DEMO';
     }
     if (currentTurn === 'ai') {
       return 'AI OPPONENT AIMING — CAMERA ORBIT ACTIVE';
@@ -135,6 +145,11 @@ export const HudOverlay: React.FC<HudOverlayProps> = ({
             className={`turn-banner turn-banner--${currentTurn}`}
             data-testid="turn-indicator"
           >
+            {demoMode && (
+              <span className="turn-banner__demo" data-testid="demo-badge">
+                DEMO
+              </span>
+            )}
             <span className="turn-banner__round">TURN {turnNumber}</span>
             <span className="turn-banner__text">{getTurnStatusText()}</span>
           </div>
@@ -293,7 +308,7 @@ export const HudOverlay: React.FC<HudOverlayProps> = ({
                 −
               </button>
               <span className="aim-stat__value" data-testid="bearing-value">
-                {Math.round(player.bearingDeg)}°
+                {Math.round(activeTank.bearingDeg)}°
               </span>
               <button
                 type="button"
@@ -320,7 +335,7 @@ export const HudOverlay: React.FC<HudOverlayProps> = ({
                 −
               </button>
               <span className="aim-stat__value" data-testid="elevation-value">
-                {Math.round(player.elevationDeg)}°
+                {Math.round(activeTank.elevationDeg)}°
               </span>
               <button
                 type="button"
@@ -361,17 +376,25 @@ export const HudOverlay: React.FC<HudOverlayProps> = ({
             />
             <div
               className="power-meter__marker"
-              style={{ left: `${player.lastPower}%` }}
-              title={`Last shot power: ${Math.round(player.lastPower)}%`}
+              style={{ left: `${activeTank.lastPower}%` }}
+              title={`Last shot power: ${Math.round(activeTank.lastPower)}%`}
             />
           </div>
 
           <div className="controls-hint">
-            <span>
-              <strong>← / →</strong> Bearing • <strong>↑ / ↓</strong> Elevation •{' '}
-              <strong>Hold Space</strong> Charge &amp; Release to Fire •{' '}
-              <strong>Drag Mouse</strong> Orbit Camera
-            </span>
+            {demoMode ? (
+              <span>
+                <strong>Spectator Demo</strong> • Autonomous AI vs AI Duel •{' '}
+                <strong>Drag Mouse</strong> Orbit Camera • <strong>C</strong> Reset
+                Camera • <strong>Esc</strong> Settings
+              </span>
+            ) : (
+              <span>
+                <strong>← / →</strong> Bearing • <strong>↑ / ↓</strong> Elevation •{' '}
+                <strong>Hold Space</strong> Charge &amp; Release to Fire •{' '}
+                <strong>Drag Mouse</strong> Orbit Camera
+              </span>
+            )}
           </div>
         </div>
 
@@ -389,7 +412,11 @@ export const HudOverlay: React.FC<HudOverlayProps> = ({
             }}
             data-testid="fire-button"
           >
-            {phase === 'charging' ? 'RELEASE TO FIRE!' : 'HOLD SPACE / CLICK'}
+            {demoMode
+              ? 'AUTO DUEL ACTIVE'
+              : phase === 'charging'
+                ? 'RELEASE TO FIRE!'
+                : 'HOLD SPACE / CLICK'}
           </button>
         </div>
       </footer>

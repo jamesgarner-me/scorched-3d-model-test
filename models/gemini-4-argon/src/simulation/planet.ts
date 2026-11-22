@@ -369,6 +369,7 @@ export class PlanetWorld {
 export function placeTanksOnPlanet(
   planet: PlanetWorld,
   tuning: TuningConfig,
+  demoMode = false,
 ): Record<TurnOwner, TankState> {
   const rng = new SeededRandom(`${planet.seed}::tanks`);
 
@@ -489,7 +490,7 @@ export function placeTanksOnPlanet(
   return {
     player: {
       id: 'player',
-      name: 'Vanguard-1 (You)',
+      name: demoMode ? 'Vanguard-1 (AI)' : 'Vanguard-1 (You)',
       color: '#38bdf8',
       normal: playerNormal,
       position: playerPos,

@@ -71,4 +71,31 @@ describe('Planetary Artillery UI & Turn Loop', () => {
 
     expect(screen.getByTestId('debug-seed-input')).toHaveValue('CUSTOM-MARS-77');
   });
+
+  // Edge-case test: computer-vs-computer demo mode (?mode=demo) disables manual controls and advances turns autonomously
+  it('runs autonomous AI-vs-AI turns in demo mode while locking manual aiming and firing controls', async () => {
+    render(
+      <App
+        initialSeed="DEMO-SEED-303"
+        instantStartForTest
+        disableCanvasForTest
+        initialDemoMode
+      />,
+    );
+
+    expect(screen.getByTestId('demo-badge')).toHaveTextContent('DEMO');
+    expect(screen.getByTestId('player-health-card')).toHaveTextContent(
+      'Vanguard-1 (AI)',
+    );
+    expect(screen.getByTestId('fire-button')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Increase Bearing' })).toBeDisabled();
+
+    // Both Vanguard-1 (player slot) and Ares Automaton (ai slot) fire autonomously to reach Turn 2
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('turn-indicator')).toHaveTextContent('TURN 2');
+      },
+      { timeout: 4000 },
+    );
+  });
 });

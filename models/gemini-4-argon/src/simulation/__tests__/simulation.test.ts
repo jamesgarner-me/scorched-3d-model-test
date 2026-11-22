@@ -189,8 +189,22 @@ describe('Headless Planetary Artillery Simulation', () => {
       1,
     );
 
+    const hardPlayerOut = solveAiTurn(
+      planet,
+      tanks,
+      wind,
+      DEFAULT_TUNING,
+      'hard',
+      [],
+      'ORB-AI-SOLVER',
+      1,
+      'player',
+    );
+
     expect(easyOut.shotInput.power).toBeGreaterThanOrEqual(10);
     expect(hardOut.shotInput.power).toBeLessThanOrEqual(100);
     expect(hardOut.solveTimeMs).toBeGreaterThan(0);
+    expect(hardPlayerOut.shotInput.shooterId).toBe('player');
+    expect(hardPlayerOut.shotInput.power).toBeGreaterThanOrEqual(10);
   });
 });

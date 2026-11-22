@@ -45,12 +45,15 @@ export interface AppProps {
   instantStartForTest?: boolean;
   /** Optional flag to disable WebGL canvas in headless jsdom unit tests */
   disableCanvasForTest?: boolean;
+  /** Optional flag to override URL ?mode=demo detection in unit tests */
+  initialDemoMode?: boolean;
 }
 
 function buildWorldBundle(
   seed: string,
   presetId: PlanetPresetId,
   tuning: TuningConfig,
+  demoMode: boolean,
 ): {
   planet: PlanetWorld;
   tanks: Record<TurnOwner, TankState>;
@@ -66,7 +69,7 @@ function buildWorldBundle(
     waterLevelOffset: preset.hasWater ? tuning.waterLevelOffset : -999,
   };
   const planet = new PlanetWorld(seed, presetId, mergedTuning);
-  const tanks = placeTanksOnPlanet(planet, mergedTuning);
+  const tanks = placeTanksOnPlanet(planet, mergedTuning, demoMode);
   const wind = generateWindForTurn(seed, 1, presetId, mergedTuning);
   const t1 = typeof performance !== 'undefined' ? performance.now() : Date.now();
   return {
@@ -81,7 +84,18 @@ export const App: React.FC<AppProps> = ({
   initialSeed,
   instantStartForTest = false,
   disableCanvasForTest = false,
+  initialDemoMode,
 }) => {
+  const isDemoMode = useMemo(() => {
+    if (initialDemoMode !== undefined) {
+      return initialDemoMode;
+    }
+    if (typeof window === 'undefined') {
+      return false;
+    }
+    return new URLSearchParams(window.location.search).get('mode') === 'demo';
+  }, [initialDemoMode]);
+
   const [seed, setSeed] = useState<string>(() => initialSeed || createRandomSeed());
   const [presetId, setPresetId] = useState<PlanetPresetId>('earth');
   const [difficulty, setDifficulty] = useState<AiDifficulty>('medium');
@@ -91,7 +105,7 @@ export const App: React.FC<AppProps> = ({
   const [needsRegenerate, setNeedsRegenerate] = useState(false);
 
   const initialBundle = useMemo(
-    () => buildWorldBundle(seed, presetId, DEFAULT_TUNING),
+    () => buildWorldBundle(seed, presetId, DEFAULT_TUNING, isDemoMode),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
@@ -123,7 +137,10 @@ export const App: React.FC<AppProps> = ({
   const [lastImpact, setLastImpact] = useState<ImpactOutcome | null>(null);
   const [damageBanner, setDamageBanner] = useState<string | null>(null);
 
-  const [aiHistory, setAiHistory] = useState<AiShotMemory[]>([]);
+  const [aiHistory, setAiHistory] = useState<Record<TurnOwner, AiShotMemory[]>>({
+    player: [],
+    ai: [],
+  });
   const [cameraFocusRequest, setCameraFocusRequest] = useState(0);
 
   const [isPaused, setIsPaused] = useState(false);
@@ -189,7 +206,12 @@ export const App: React.FC<AppProps> = ({
         waterLevelOffset: presetDefaults.waterLevelOffset,
       };
 
-      const bundle = buildWorldBundle(nextSeed, nextPresetId, adjustedTuning);
+      const bundle = buildWorldBundle(
+        nextSeed,
+        nextPresetId,
+        adjustedTuning,
+        isDemoMode,
+      );
       setSeed(nextSeed);
       setPresetId(nextPresetId);
       setTuning(adjustedTuning);
@@ -207,7 +229,7 @@ export const App: React.FC<AppProps> = ({
       setFlightProgressIndex(0);
       setLastImpact(null);
       setDamageBanner(null);
-      setAiHistory([]);
+      setAiHistory({ player: [], ai: [] });
       setIsPaused(false);
       setMetrics((m) => ({ ...m, generationTimeMs: bundle.genTimeMs }));
 
@@ -219,28 +241,42 @@ export const App: React.FC<AppProps> = ({
         setPhase('loading');
       }
     },
-    [instantStartForTest],
+    [instantStartForTest, isDemoMode],
   );
 
   // Compute live 25% trajectory preview points (User Stories 17, 18, 19, 53)
   const previewSimulation = useMemo(() => {
+    const activeTank = isDemoMode ? tanks[currentTurn] : tanks.player;
     const activePower =
       chargingPower !== null
         ? chargingPower
-        : tanks.player.lastPower + cratersVersion * 0;
-    return simulateShot(planet, tanks.player, tanks, wind, tuning, {
-      shooterId: 'player',
-      bearingDeg: tanks.player.bearingDeg,
-      elevationDeg: tanks.player.elevationDeg,
+        : activeTank.lastPower + cratersVersion * 0;
+    return simulateShot(planet, activeTank, tanks, wind, tuning, {
+      shooterId: activeTank.id,
+      bearingDeg: activeTank.bearingDeg,
+      elevationDeg: activeTank.elevationDeg,
       power: activePower,
       varianceSeed: null, // Preview uses deterministic mean path
     });
-  }, [planet, tanks, wind, tuning, chargingPower, cratersVersion]);
+  }, [
+    planet,
+    tanks,
+    wind,
+    tuning,
+    chargingPower,
+    cratersVersion,
+    isDemoMode,
+    currentTurn,
+  ]);
 
   // Adjust player turret aim
   const adjustPlayerAim = useCallback(
     (deltaBearing: number, deltaElevation: number) => {
-      if (currentTurn !== 'player' || (phase !== 'aiming' && phase !== 'charging')) {
+      if (
+        isDemoMode ||
+        currentTurn !== 'player' ||
+        (phase !== 'aiming' && phase !== 'charging')
+      ) {
         return;
       }
       setTanks((prev) => {
@@ -257,7 +293,7 @@ export const App: React.FC<AppProps> = ({
         };
       });
     },
-    [currentTurn, phase],
+    [isDemoMode, currentTurn, phase],
   );
 
   // Fire a shot (used by both Player and AI)
@@ -287,22 +323,30 @@ export const App: React.FC<AppProps> = ({
       soundEngine.playFire(input.power);
       soundEngine.startFlightWhistle();
 
-      // If AI fired, record its shot in AI memory so it learns from misses (User Stories 35–37)
-      if (input.shooterId === 'ai') {
-        const err = evaluateShotError(tanks.ai, tanks.player, sim.impactPosition);
-        setAiHistory((prev) => [
+      // If an AI-controlled tank fired, record its shot in AI memory so it learns from misses (User Stories 35–37)
+      if (input.shooterId === 'ai' || isDemoMode) {
+        const targetId: TurnOwner = input.shooterId === 'ai' ? 'player' : 'ai';
+        const err = evaluateShotError(
+          tanks[input.shooterId],
+          tanks[targetId],
+          sim.impactPosition,
+        );
+        setAiHistory((prev) => ({
           ...prev,
-          {
-            turn: turnNumber,
-            bearingDeg: input.bearingDeg,
-            elevationDeg: input.elevationDeg,
-            power: input.power,
-            impactPoint: sim.impactPosition,
-            targetPoint: tanks.player.position,
-            angularErrorDeg: err.bearingErrorDeg,
-            overshotRad: err.overshotRad,
-          },
-        ]);
+          [input.shooterId]: [
+            ...prev[input.shooterId],
+            {
+              turn: turnNumber,
+              bearingDeg: input.bearingDeg,
+              elevationDeg: input.elevationDeg,
+              power: input.power,
+              impactPoint: sim.impactPosition,
+              targetPoint: tanks[targetId].position,
+              angularErrorDeg: err.bearingErrorDeg,
+              overshotRad: err.overshotRad,
+            },
+          ],
+        }));
       }
 
       // Animate projectile flight
@@ -354,10 +398,14 @@ export const App: React.FC<AppProps> = ({
           }
 
           if (outcome.damages.ai > 0) {
-            dmgParts.push(`AI Tank -${outcome.damages.ai} HP`);
+            dmgParts.push(
+              `${isDemoMode ? 'Ares Automaton' : 'AI Tank'} -${outcome.damages.ai} HP`,
+            );
           }
           if (outcome.damages.player > 0) {
-            dmgParts.push(`Your Tank -${outcome.damages.player} HP`);
+            dmgParts.push(
+              `${isDemoMode ? 'Vanguard-1' : 'Your Tank'} -${outcome.damages.player} HP`,
+            );
           }
           if (outcome.damages.ai === 0 && outcome.damages.player === 0) {
             dmgParts.push('No Blast Damage');
@@ -405,21 +453,31 @@ export const App: React.FC<AppProps> = ({
         }
       }, stepIntervalMs);
     },
-    [tanks, planet, wind, tuning, turnNumber, instantStartForTest, seed, presetId],
+    [
+      tanks,
+      planet,
+      wind,
+      tuning,
+      turnNumber,
+      instantStartForTest,
+      seed,
+      presetId,
+      isDemoMode,
+    ],
   );
 
   // Start & release Spacebar power charging (User Stories 15 & 16)
   const startCharging = useCallback(() => {
-    if (currentTurn !== 'player' || phase !== 'aiming' || isPaused) {
+    if (isDemoMode || currentTurn !== 'player' || phase !== 'aiming' || isPaused) {
       return;
     }
     setChargingPower(10);
     chargingPowerRef.current = 10;
     setPhase('charging');
-  }, [currentTurn, phase, isPaused]);
+  }, [isDemoMode, currentTurn, phase, isPaused]);
 
   const releaseChargeAndFire = useCallback(() => {
-    if (currentTurn !== 'player' || phase !== 'charging') {
+    if (isDemoMode || currentTurn !== 'player' || phase !== 'charging') {
       return;
     }
     const finalPower =
@@ -433,7 +491,7 @@ export const App: React.FC<AppProps> = ({
       power: Math.round(finalPower),
       varianceSeed: `${seed}::shot-variance::player::${turnNumber}`,
     });
-  }, [currentTurn, phase, tanks.player, executeShot, seed, turnNumber]);
+  }, [isDemoMode, currentTurn, phase, tanks.player, executeShot, seed, turnNumber]);
 
   // Animate power bar while charging
   useEffect(() => {
@@ -554,9 +612,10 @@ export const App: React.FC<AppProps> = ({
     };
   }, [phase, adjustPlayerAim, startCharging, releaseChargeAndFire]);
 
-  // AI turn trigger (User Stories 32, 34–38)
+  // AI turn trigger (User Stories 32, 34–38; also drives Vanguard-1 in ?mode=demo)
   useEffect(() => {
-    if (currentTurn !== 'ai' || phase !== 'aiming' || isPaused) {
+    const isAiControlledTurn = currentTurn === 'ai' || isDemoMode;
+    if (!isAiControlledTurn || phase !== 'aiming' || isPaused) {
       return;
     }
 
@@ -568,9 +627,10 @@ export const App: React.FC<AppProps> = ({
         wind,
         tuning,
         difficulty,
-        aiHistory,
+        aiHistory[currentTurn],
         seed,
         turnNumber,
+        currentTurn,
       );
       setMetrics((m) => ({ ...m, aiSolveTimeMs: solved.solveTimeMs }));
       executeShot(solved.shotInput);
@@ -579,6 +639,7 @@ export const App: React.FC<AppProps> = ({
     return () => window.clearTimeout(timer);
   }, [
     currentTurn,
+    isDemoMode,
     phase,
     isPaused,
     instantStartForTest,
@@ -666,6 +727,7 @@ export const App: React.FC<AppProps> = ({
         chargingPower={chargingPower}
         damageBanner={damageBanner}
         debugOpen={debugOpen}
+        demoMode={isDemoMode}
         onSelectPreset={(nextPreset) =>
           startMatchWithConfig(createRandomSeed(), nextPreset, tuning)
         }
@@ -725,6 +787,7 @@ export const App: React.FC<AppProps> = ({
           cratersCount={planet.craters.length}
           presetId={presetId}
           difficulty={difficulty}
+          demoMode={isDemoMode}
           onNewMatch={() => startMatchWithConfig(createRandomSeed(), presetId, tuning)}
         />
       )}
