@@ -22,5 +22,10 @@
     "name": "Opus 5",
     "status": "live",
     "url": "https://scorched-3d-opus-5.vercel.app"
+  },
+  {
+    "folder": "gemini-4-argon",
+    "name": "Gemini 4 Argon",
+    "status": "pending"
   }
 ]
