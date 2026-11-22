@@ -47,7 +47,8 @@ export function CameraRig({ snap }: { snap: Snapshot }) {
       return
     }
 
-    if ((snap.phase === 'playerTurn' || snap.phase === 'charging') && !settled.current) {
+    const settleForDemoThink = snap.demo && snap.phase === 'aiThinking' && !settled.current
+    if ((snap.phase === 'playerTurn' || snap.phase === 'charging' || settleForDemoThink) && !settled.current) {
       const pos: [number, number, number] = [
         player[0] + frame.up[0] * radius * 0.55 + frame.east[0] * radius * 0.35,
         player[1] + frame.up[1] * radius * 0.55 + frame.east[1] * radius * 0.35,

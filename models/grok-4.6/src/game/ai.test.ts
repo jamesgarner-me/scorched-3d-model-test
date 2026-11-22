@@ -39,4 +39,27 @@ describe('solveAim', () => {
     })
     expect(result.path.length).toBeGreaterThan(2)
   })
+
+  it('solves from the blue seat with the same ballistic search', async () => {
+    const planet = await generatePlanet({ seed: 'ai-2', preset: 'mars', lats: 16, lons: 32 })
+    const from = surfacePoint(planet, [0, 0, 1])
+    const target = surfacePoint(planet, [0, 1, 0])
+    const solution = solveAim({
+      planet,
+      from,
+      target,
+      difficulty: 'medium',
+      memory: { lastImpact: null, lastAim: null, lastMiss: 0 },
+      seed: 'ai-2',
+      turn: 0,
+      gravity: planet.gravity,
+      wind: planet.wind.vector,
+      maxSpeed: 38,
+      minElevation: 6,
+      maxElevation: 82,
+    })
+    expect(Number.isFinite(solution.bearing)).toBe(true)
+    expect(solution.power).toBeGreaterThan(0.2)
+    expect(solution.power).toBeLessThanOrEqual(1)
+  })
 })
