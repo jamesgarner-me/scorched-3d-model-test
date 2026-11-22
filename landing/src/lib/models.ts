@@ -29,6 +29,13 @@ export const modelSiteSchema = z.discriminatedUnion('status', [
 export type ModelSite = z.infer<typeof modelSiteSchema>
 export type LiveModelSite = Extract<ModelSite, { status: 'live' }>
 
+/** Every build reads `?mode=demo` as computer versus computer. */
+export function demoUrl(site: LiveModelSite): string {
+  const url = new URL(site.url)
+  url.searchParams.set('mode', 'demo')
+  return url.toString()
+}
+
 const uniqueBy = <T>(items: readonly T[], key: (item: T) => string | undefined) => {
   const seen = new Set<string>()
   return items.every((item) => {

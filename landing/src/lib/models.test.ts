@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { modelSites, modelSitesSchema } from '@/lib/models'
+import { demoUrl, modelSites, modelSitesSchema } from '@/lib/models'
 
 const identity = {
   folder: 'opus-5',
@@ -39,6 +39,19 @@ describe('modelSitesSchema', () => {
 
   it.each(invalidCases)('rejects %s', (_description, data) => {
     expect(modelSitesSchema.safeParse(data).success).toBe(false)
+  })
+})
+
+describe('demoUrl', () => {
+  // Every build reads `?mode=demo`, so the link must carry exactly that query
+  // whatever shape the deployment URL takes.
+  it('adds the demo query to a bare or pathed deployment URL', () => {
+    expect(
+      demoUrl({ ...identity, status: 'live', url: 'https://scorched-3d-opus-5.vercel.app' }),
+    ).toBe('https://scorched-3d-opus-5.vercel.app/?mode=demo')
+    expect(
+      demoUrl({ ...identity, status: 'live', url: 'https://example.com/opus/?mode=play' }),
+    ).toBe('https://example.com/opus/?mode=demo')
   })
 })
 
