@@ -33,9 +33,6 @@ function CardHeading({ site }: { site: ModelSite }) {
       <strong className="font-display text-2xl font-bold tracking-wide text-amber uppercase">
         {site.name}
       </strong>
-      <span className="text-[0.7rem] tracking-[0.14em] text-amber-dim uppercase">
-        models/{site.folder}
-      </span>
       <span className="text-[0.7rem] text-amber-dim">{site.lab}</span>
     </span>
   )
@@ -44,7 +41,7 @@ function CardHeading({ site }: { site: ModelSite }) {
 function LaunchLink({ href, label, site }: { href: string; label: string; site: LiveModelSite }) {
   return (
     <a
-      aria-label={`${label} ${site.name} (models/${site.folder}, opens in a new tab)`}
+      aria-label={`${label} ${site.name} (opens in a new tab)`}
       className={action({ status: 'live' })}
       href={href}
       target="_blank"

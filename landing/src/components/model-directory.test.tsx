@@ -41,7 +41,6 @@ describe('ModelDirectory', () => {
     expect(play).toHaveAttribute('href', 'https://scorched-3d-grok-46.vercel.app')
     expect(play).toHaveAttribute('target', '_blank')
     expect(play).toHaveAttribute('rel', 'noopener noreferrer')
-    expect(play).toHaveAccessibleName(expect.stringContaining('models/grok-4.6'))
     expect(play).toHaveAccessibleName(expect.stringContaining('opens in a new tab'))
 
     const demo = screen.getByRole('link', { name: /^Demo Grok 4\.6/ })
@@ -59,8 +58,11 @@ describe('ModelDirectory', () => {
 
   // Labs are spelt by hand in the JSON ("xAI", not "XAI"), so the card must
   // show them as written, deployed or not, without folding them into a link.
+  // The lab replaces the folder path, which only repeated the model name.
   it('labels every build with its lab exactly as written', () => {
     render(<ModelDirectory sites={sites} />)
+
+    expect(screen.queryByText(/models\//)).not.toBeInTheDocument()
 
     const labs = screen
       .getAllByRole('listitem')
