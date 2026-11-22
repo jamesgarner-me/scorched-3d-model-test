@@ -7,7 +7,7 @@ import { createRng, type Rng } from './rng'
 import { tune } from './tuning'
 import { add, aimDirection, bearingTo, DEG, dirFromLonLat, frameAt, normalize, scale, surfaceDistance, type Frame, type V3 } from './vec'
 
-export type MatchSettings = { preset: PresetId; difficulty: Difficulty; seed: string }
+export type MatchSettings = { preset: PresetId; difficulty: Difficulty; seed: string; demo?: boolean }
 
 export type Tank = {
   id: TankId
@@ -39,6 +39,8 @@ export class Match {
   readonly wind: V3
   readonly windStrength: number
   readonly ai: AiBrain
+  /** Second brain that drives the player's tank in a demo match; null when a human is aiming. */
+  readonly playerAi: AiBrain | null
   turn: TankId = 'player'
   shotsFired = 0
   lastShooter: TankId | null = null
@@ -54,6 +56,12 @@ export class Match {
     this.lastPlayerPower = tune('defaultPower')
     const [p, a] = this.placeTanks()
     this.tanks = { player: this.makeTank('player', p, a), ai: this.makeTank('ai', a, p) }
+    // Created after placement so a seed lays out the same world in play and demo.
+    this.playerAi = settings.demo ? createAiBrain(settings.difficulty, this.rng) : null
+  }
+
+  private brainFor(id: TankId): AiBrain | null {
+    return id === 'ai' ? this.ai : this.playerAi
   }
 
   private makeTank(id: TankId, pos: V3, facing: V3): Tank {
@@ -146,15 +154,20 @@ export class Match {
       carveMs = performance.now() - t0
       splash = !cratered
     }
-    if (id === 'ai') aiObserve(this.ai, trajectory.impact, this.tanks.player.pos, this.rng)
+    const brain = this.brainFor(id)
+    if (brain) aiObserve(brain, trajectory.impact, this.tanks[id === 'ai' ? 'player' : 'ai'].pos, this.rng)
     // If both die on the same shot the shooter loses (self-destruction counts against them).
     if (!this.tanks.player.alive && !this.tanks.ai.alive) destroyed = id
     return { trajectory, params, shooter: id, damage, cratered, splash, destroyed, carveMs }
   }
 
-  solveAi(): AiSolution {
-    const ai = this.tanks.ai, player = this.tanks.player
-    return aiSolve({ planet: this.planet, wind: this.wind, shooter: { id: 'ai', pos: ai.pos }, muzzleOffset: MUZZLE_OFFSET, target: { id: 'player', pos: player.pos }, brain: this.ai, rng: this.rng })
+  /** Solve a shot for an AI-driven tank: the enemy by default, or either tank in a demo. */
+  solveAi(shooter: TankId = 'ai'): AiSolution {
+    const brain = this.brainFor(shooter)
+    if (!brain) throw new Error(`${shooter} is not AI-driven`)
+    const targetId: TankId = shooter === 'ai' ? 'player' : 'ai'
+    const from = this.tanks[shooter], to = this.tanks[targetId]
+    return aiSolve({ planet: this.planet, wind: this.wind, shooter: { id: shooter, pos: from.pos }, muzzleOffset: MUZZLE_OFFSET, target: { id: targetId, pos: to.pos }, brain, rng: this.rng })
   }
 
   winner(): TankId | null {

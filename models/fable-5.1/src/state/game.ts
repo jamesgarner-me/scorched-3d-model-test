@@ -6,7 +6,7 @@ import { PRESETS } from '../sim/presets'
 import { createRng, randomSeed } from '../sim/rng'
 import { tune } from '../sim/tuning'
 import { DEG, clamp, normalize, type V3 } from '../sim/vec'
-import { store, type Effect, type Message, type Settings } from './store'
+import { DEMO_MODE, store, tankName, type Effect, type Message, type Settings } from './store'
 
 type Timer = { at: number; fn: () => void; token: number }
 
@@ -45,7 +45,7 @@ class Game {
       return
     }
     const genMs = performance.now() - t0
-    const matchSettings: MatchSettings = { preset: settings.preset, difficulty: settings.difficulty, seed }
+    const matchSettings: MatchSettings = { preset: settings.preset, difficulty: settings.difficulty, seed, demo: DEMO_MODE }
     const match = new Match(planet, matchSettings)
     const s = store.get()
     store.set({
@@ -88,6 +88,12 @@ class Game {
   }
 
   private beginPlay() {
+    if (DEMO_MODE) {
+      // Blue keeps the opening shot, so the turn order matches a played match.
+      this.toast({ text: 'Demo match', sub: 'Both tanks are computer-controlled · drag to orbit, Esc to pause', tone: 'info' }, 4)
+      this.aiTurn('player')
+      return
+    }
     store.set((s) => ({ phase: 'aim', turn: 'player', camera: { mode: 'free', focus: 'player', impact: null, version: s.camera.version + 1 } }))
     this.toast({ text: 'Your turn', sub: 'Arrow keys to aim · hold Space to charge, release to fire', tone: 'info' }, 4)
   }
@@ -217,7 +223,7 @@ class Game {
     const carveMs = performance.now() - t0
     const up = normalize(trajectory.impact)
     const effects: Effect[] = [...s.effects]
-    const victimOf = (id: TankId) => (id === 'player' ? 'You' : 'Enemy')
+    const victimOf = tankName
     let message: Message
     if (trajectory.outcome === 'lost') {
       message = { id: this.nextId++, text: 'Lost to space', sub: 'The shell never came down', tone: 'miss' }
@@ -255,15 +261,23 @@ class Game {
       })
       return
     }
-    this.after(1.9, () => (shooter === 'player' ? this.aiTurn() : this.playerTurn()))
+    this.after(1.9, () => this.nextTurn(shooter === 'player' ? 'ai' : 'player'))
     this.after(4.5, () => store.set((st) => (st.message?.id === message.id ? { message: null } : {})))
   }
 
   private missDistance(match: Match, shooter: TankId, impact: V3): string {
-    const target = match.tanks[shooter === 'player' ? 'ai' : 'player']
+    const targetId: TankId = shooter === 'player' ? 'ai' : 'player'
+    const target = match.tanks[targetId]
     const dx = impact.x - target.pos.x, dy = impact.y - target.pos.y, dz = impact.z - target.pos.z
     const d = Math.sqrt(dx * dx + dy * dy + dz * dz)
-    return `${Math.round(d)} m from ${shooter === 'player' ? 'the enemy' : 'you'}`
+    const who = DEMO_MODE ? tankName(targetId) : targetId === 'ai' ? 'the enemy' : 'you'
+    return `${Math.round(d)} m from ${who}`
+  }
+
+  /** Hand the turn over: the enemy is always AI-driven, and so is the player's tank in a demo. */
+  private nextTurn(id: TankId) {
+    if (id === 'ai' || DEMO_MODE) this.aiTurn(id)
+    else this.playerTurn()
   }
 
   private effect(kind: Effect['kind'], pos: V3, up: V3, life: number): Effect {
@@ -281,16 +295,19 @@ class Game {
     }))
   }
 
-  private aiTurn() {
+  private aiTurn(shooter: TankId = 'ai') {
     const match = store.get().match
     if (!match) return
-    store.set((st) => ({ phase: 'ai-think', turn: 'ai', camera: { mode: 'free', focus: 'ai', impact: null, version: st.camera.version + 1 } }))
+    const tank = match.tanks[shooter]
+    store.set((st) => ({ phase: 'ai-think', turn: shooter, camera: { mode: 'free', focus: shooter, impact: null, version: st.camera.version + 1 } }))
     this.after(tune('aiThinkTime'), () => {
-      const sol = match.solveAi()
-      match.tanks.ai.bearing = sol.bearing
-      match.tanks.ai.elevation = sol.elevation
-      store.set((st) => ({ phase: 'ai-aim', aiAim: { bearing: sol.bearing, elevation: sol.elevation, power: sol.power }, metrics: { ...st.metrics, aiMs: sol.solveMs, aiEvals: sol.evaluations } }))
-      this.after(1.1, () => this.fire('ai', { bearing: sol.bearing, elevation: sol.elevation, power: sol.power }))
+      const sol = match.solveAi(shooter)
+      tank.bearing = sol.bearing
+      tank.elevation = sol.elevation
+      const aim: ShotParams = { bearing: sol.bearing, elevation: sol.elevation, power: sol.power }
+      // The player's turret and readout follow `aim`, the enemy's follow `aiAim`.
+      store.set((st) => ({ phase: 'ai-aim', ...(shooter === 'player' ? { aim } : { aiAim: aim }), metrics: { ...st.metrics, aiMs: sol.solveMs, aiEvals: sol.evaluations } }))
+      this.after(1.1, () => this.fire(shooter, aim))
     })
   }
 

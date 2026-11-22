@@ -123,6 +123,7 @@ h2 { font-size: 24px; margin: 0 0 14px; }
 .turn-banner.you { border-color: rgba(95,163,255,0.5); }
 .turn-banner.enemy { border-color: rgba(255,106,77,0.5); }
 .turn-banner.pulse { animation: pulse 1.6s ease-in-out infinite; }
+.demo-badge { text-transform: uppercase; letter-spacing: 0.18em; font-size: 10px; color: var(--accent); background: var(--panel); border: 1px solid var(--panel-border); border-radius: 999px; padding: 3px 10px; }
 @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(95,163,255,0.0); } 50% { box-shadow: 0 0 0 6px rgba(95,163,255,0.18); } }
 
 .wind { display: flex; align-items: center; gap: 10px; background: var(--panel); border: 1px solid var(--panel-border); border-radius: 999px; padding: 6px 14px 6px 6px; }
@@ -164,6 +165,8 @@ h2 { font-size: 24px; margin: 0 0 14px; }
 /* End */
 .panel.victory h1 { color: var(--good); }
 .panel.defeat h1 { color: var(--enemy); }
+.panel.blue h1 { color: var(--you); }
+.panel.red h1 { color: var(--enemy); }
 
 /* Debug */
 .debug {

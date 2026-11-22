@@ -39,6 +39,12 @@ export type Metrics = { fps: number; frameMs: number; genMs: number; aiMs: numbe
 
 export type CameraMode = 'flyover' | 'free' | 'follow' | 'linger'
 
+/** `?mode=demo` makes both tanks AI-driven: a spectator match launched from the directory. */
+export const DEMO_MODE = new URLSearchParams(window.location.search).get('mode') === 'demo'
+
+/** Display name for a tank. In a demo neither tank is "you", so both go by hull colour. */
+export const tankName = (id: TankId) => (DEMO_MODE ? (id === 'player' ? 'Blue' : 'Red') : id === 'player' ? 'You' : 'Enemy')
+
 export type State = {
   phase: Phase
   paused: boolean
