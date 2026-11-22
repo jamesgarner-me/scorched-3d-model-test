@@ -36,6 +36,7 @@ function CardHeading({ site }: { site: ModelSite }) {
       <span className="text-[0.7rem] tracking-[0.14em] text-amber-dim uppercase">
         models/{site.folder}
       </span>
+      <span className="text-[0.7rem] text-amber-dim">{site.lab}</span>
     </span>
   )
 }

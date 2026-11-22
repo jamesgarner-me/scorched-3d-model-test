@@ -5,6 +5,7 @@ import { demoUrl, modelSites, modelSitesSchema } from '@/lib/models'
 const identity = {
   folder: 'opus-5',
   name: 'Opus 5',
+  lab: 'Anthropic' as const,
 }
 
 const live = { ...identity, status: 'live', url: 'https://scorched-3d-opus-5.vercel.app' }
@@ -12,8 +13,11 @@ const live = { ...identity, status: 'live', url: 'https://scorched-3d-opus-5.ver
 const pending = {
   folder: 'sonnet-5',
   name: 'Sonnet 5',
+  lab: 'Anthropic',
   status: 'pending',
 }
+
+const unattributed = { folder: live.folder, name: live.name, status: live.status, url: live.url }
 
 const invalidCases: [description: string, data: unknown][] = [
   ['a duplicated folder', [live, { ...live, url: 'https://elsewhere.example' }]],
@@ -24,6 +28,9 @@ const invalidCases: [description: string, data: unknown][] = [
   ['an unrecognised field', [{ ...live, rank: 1 }]],
   ['a leftover blurb', [{ ...live, blurb: 'one line on what this build does' }]],
   ['an empty directory', []],
+  ['a build with no lab', [unattributed]],
+  ['an unknown lab', [{ ...live, lab: 'Acme' }]],
+  ['a lab spelt in the wrong case', [{ ...live, lab: 'XAI' }]],
 ]
 
 describe('modelSitesSchema', () => {

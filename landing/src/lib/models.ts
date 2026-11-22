@@ -7,6 +7,8 @@ const identity = {
   folder: z.string().regex(/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/, 'must be a lowercase folder name'),
   /** Model name as it should read on the page. */
   name: z.string().min(1),
+  /** Lab that made the model, spelt exactly as it should read on the page. */
+  lab: z.enum(['Anthropic', 'Google', 'OpenAI', 'xAI']),
 }
 
 /**
