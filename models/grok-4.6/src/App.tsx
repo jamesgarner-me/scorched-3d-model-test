@@ -16,6 +16,7 @@ export default function App() {
   const [difficulty, setDifficulty] = useState<Difficulty>('medium')
   const lastPhase = useRef(snap.phase)
   const lastEffect = useRef(snap.effect?.id ?? 0)
+  const demoStarted = useRef(false)
 
   useEffect(() => {
     const prev = lastPhase.current
@@ -40,6 +41,13 @@ export default function App() {
     void engine.startMatch(preset, difficulty)
   }
 
+  useEffect(() => {
+    if (!snap.demo || demoStarted.current) return
+    demoStarted.current = true
+    unlockAudio()
+    void engine.startMatch(preset, difficulty)
+  }, [snap.demo, engine, preset, difficulty])
+
   return (
     <div className="app">
       {engine.planet && <GameCanvas engine={engine} snap={snap} input={input} />}
@@ -47,6 +55,7 @@ export default function App() {
         <Menu
           preset={preset}
           difficulty={difficulty}
+          demo={snap.demo}
           onPreset={setPreset}
           onDifficulty={setDifficulty}
           onStart={start}
@@ -73,6 +82,7 @@ export default function App() {
       {snap.phase === 'ended' && snap.winner && (
         <WinnerOverlay
           winner={snap.winner}
+          demo={snap.demo}
           onAgain={() => void engine.newMatch()}
           onMenu={() => engine.returnToMenu()}
         />

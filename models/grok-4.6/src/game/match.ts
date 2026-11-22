@@ -63,10 +63,16 @@ export interface Snapshot {
   seaLevel: number
   muted: boolean
   debug: boolean
+  demo: boolean
   metrics: Metrics
   effect: EffectEvent | null
   flyoverT: number
   destructionT: number
+}
+
+export function readDemoMode(): boolean {
+  if (typeof window === 'undefined') return false
+  return new URLSearchParams(window.location.search).get('mode') === 'demo'
 }
 
 export interface TankPublic {
@@ -91,6 +97,8 @@ const emptyTank = (side: Side): TankPublic => ({
 
 type Listener = () => void
 
+const emptyMemory = (): AiMemory => ({ lastImpact: null, lastAim: null, lastMiss: 0 })
+
 export class MatchEngine {
   planet: Planet | null = null
   private phase: Phase = 'menu'
@@ -113,14 +121,16 @@ export class MatchEngine {
   private planetVersion = 0
   private muted = false
   private debug = false
+  private readonly demo: boolean
   private metrics: Metrics = { fps: 0, frameMs: 0, generationMs: 0, aiSolveMs: 0, craterMs: 0 }
   private effect: EffectEvent | null = null
   private flyoverT = 0
   private destructionT = 0
   private resolveT = 0
   private thinkT = 0
+  private thinkingSide: Side = 'player'
   private aiQueued: { bearing: number; elevation: number; power: number } | null = null
-  private memory: AiMemory = { lastImpact: null, lastAim: null, lastMiss: 0 }
+  private memories: Record<Side, AiMemory> = { player: emptyMemory(), ai: emptyMemory() }
   private turnCount = 0
   private genToken = 0
   private listeners = new Set<Listener>()
@@ -130,6 +140,10 @@ export class MatchEngine {
   private dirtyGuide = true
   private fpsAccum = 0
   private fpsFrames = 0
+
+  constructor(demo = readDemoMode()) {
+    this.demo = demo
+  }
 
   subscribe(fn: Listener): () => void {
     this.listeners.add(fn)
@@ -155,7 +169,7 @@ export class MatchEngine {
       enemy: this.publicTank(this.enemy, 'ai'),
       windStrength: this.planet?.wind.strength ?? 0,
       windBearing: this.planet?.wind.bearing ?? 0,
-      turn: this.phase === 'aiThinking' || this.shot?.side === 'ai' ? 'ai' : 'player',
+      turn: this.currentTurn(),
       bearing: this.player?.bearing ?? 0,
       elevation: this.player?.elevation ?? rad(32),
       power: this.power,
@@ -170,6 +184,7 @@ export class MatchEngine {
       seaLevel: this.planet?.seaLevel ?? 54,
       muted: this.muted,
       debug: this.debug,
+      demo: this.demo,
       metrics: { ...this.metrics },
       effect: this.effect,
       flyoverT: this.flyoverT,
@@ -212,6 +227,13 @@ export class MatchEngine {
     this.emit()
   }
 
+  private currentTurn(): Side {
+    if (this.phase === 'aiThinking') return this.thinkingSide
+    if (this.shot) return this.shot.side
+    if (this.phase === 'playerTurn' || this.phase === 'charging') return 'player'
+    return this.thinkingSide
+  }
+
   setAimFromHud(bearingDeg: number, elevationDeg: number): void {
     if (!this.player || this.inputLocked()) return
     this.player.bearing = wrapAngle(rad(bearingDeg))
@@ -233,7 +255,8 @@ export class MatchEngine {
     this.guide = []
     this.effect = null
     this.lastDamage = null
-    this.memory = { lastImpact: null, lastAim: null, lastMiss: 0 }
+    this.memories = { player: emptyMemory(), ai: emptyMemory() }
+    this.thinkingSide = 'player'
     this.turnCount = 0
     this.lastPower = tuning.get('defaultPower')
     this.power = this.lastPower
@@ -306,8 +329,7 @@ export class MatchEngine {
     if (this.phase === 'flyover') {
       this.flyoverT += dt
       if (this.flyoverT >= 4.2) {
-        this.phase = 'playerTurn'
-        this.dirtyGuide = true
+        this.beginNextTurn('player')
       }
       this.emit()
       return
@@ -348,11 +370,12 @@ export class MatchEngine {
       if (this.aiQueued && this.thinkT > 0.95) {
         const aim = this.aiQueued
         this.aiQueued = null
-        if (this.enemy) {
-          this.enemy.bearing = aim.bearing
-          this.enemy.elevation = aim.elevation
+        const tank = this.thinkingSide === 'player' ? this.player : this.enemy
+        if (tank) {
+          tank.bearing = aim.bearing
+          tank.elevation = aim.elevation
         }
-        this.fire('ai', aim.bearing, aim.elevation, aim.power)
+        this.fire(this.thinkingSide, aim.bearing, aim.elevation, aim.power)
         return
       }
       this.emit()
@@ -360,6 +383,10 @@ export class MatchEngine {
     }
 
     if ((this.phase === 'playerTurn' || this.phase === 'charging') && this.player) {
+      if (this.demo) {
+        this.beginNextTurn('player')
+        return
+      }
       this.applyAim(dt, input)
       if (this.phase === 'playerTurn' && input.space && !this.spaceWasDown) {
         this.phase = 'charging'
@@ -385,6 +412,7 @@ export class MatchEngine {
 
   inputLocked(): boolean {
     return (
+      this.demo ||
       this.paused ||
       this.phase === 'inFlight' ||
       this.phase === 'resolving' ||
@@ -407,7 +435,7 @@ export class MatchEngine {
   }
 
   private applyAim(dt: number, input: InputState): void {
-    if (!this.player) return
+    if (!this.player || this.demo) return
     const yaw = rad(tuning.get('aimYawSpeed')) * dt
     const pitch = rad(tuning.get('aimPitchSpeed')) * dt
     let changed = false
@@ -609,10 +637,9 @@ export class MatchEngine {
       }
     }
     this.lastDamage = reported
-    if (this.shot.side === 'ai') {
-      this.memory.lastImpact = impact
-      this.memory.lastMiss = dist(impact, this.player.position)
-    }
+    const target = this.shot.side === 'ai' ? this.player : this.enemy
+    this.memories[this.shot.side].lastImpact = impact
+    this.memories[this.shot.side].lastMiss = dist(impact, target.position)
     this.phase = 'resolving'
     this.resolveT = 0
     this.emit()
@@ -636,7 +663,13 @@ export class MatchEngine {
       this.emit()
       return
     }
-    if (this.shot?.side === 'player') {
+    this.beginNextTurn(this.shot?.side === 'player' ? 'ai' : 'player')
+  }
+
+  private beginNextTurn(side: Side): void {
+    this.thinkingSide = side
+    this.shot = null
+    if (this.demo || side === 'ai') {
       this.phase = 'aiThinking'
       this.thinkT = 0
       this.aiQueued = null
@@ -644,19 +677,21 @@ export class MatchEngine {
       this.phase = 'playerTurn'
       this.dirtyGuide = true
     }
-    this.shot = null
     this.emit()
   }
 
   private queueAiShot(): void {
     if (!this.planet || !this.player || !this.enemy) return
+    const shooter = this.thinkingSide
+    const from = shooter === 'player' ? this.player : this.enemy
+    const target = shooter === 'player' ? this.enemy : this.player
     const ctx = this.shotContext()
     const solution = solveAim({
       planet: this.planet,
-      from: this.enemy.position,
-      target: this.player.position,
+      from: from.position,
+      target: target.position,
       difficulty: this.difficulty,
-      memory: this.memory,
+      memory: this.memories[shooter],
       seed: this.seed,
       turn: this.turnCount,
       gravity: ctx.gravity,
@@ -666,7 +701,7 @@ export class MatchEngine {
       maxElevation: tuning.get('maxElevation'),
     })
     this.metrics.aiSolveMs = solution.solveMs
-    this.memory.lastAim = {
+    this.memories[shooter].lastAim = {
       bearing: solution.bearing,
       elevation: solution.elevation,
       power: solution.power,

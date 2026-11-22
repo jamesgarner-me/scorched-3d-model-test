@@ -10,13 +10,19 @@ export function HUD({
   onPause: () => void
   onDebug: () => void
 }) {
+  const blue = snap.demo ? 'Blue' : 'You'
+  const red = snap.demo ? 'Red' : 'AI'
+  const aligning =
+    snap.turn === 'player' ? `${blue} aligning` : `${red} aligning`
   const turnLabel =
     snap.phase === 'aiThinking'
-      ? 'AI aligning'
+      ? aligning
       : snap.phase === 'inFlight'
         ? 'Round in flight'
         : snap.phase === 'playerTurn' || snap.phase === 'charging'
-          ? 'Your battery'
+          ? snap.demo
+            ? aligning
+            : 'Your battery'
           : snap.phase === 'flyover'
             ? 'Approach'
             : snap.phase === 'destruction'
@@ -26,6 +32,12 @@ export function HUD({
   return (
     <div className="hud">
       <header className="hud-top">
+        {snap.demo && (
+          <div className="plate demo" data-testid="demo-badge">
+            <span className="kicker">Mode</span>
+            <strong>Demo</strong>
+          </div>
+        )}
         <div className="plate">
           <span className="kicker">Turn</span>
           <strong>{turnLabel}</strong>
@@ -51,11 +63,17 @@ export function HUD({
       </header>
 
       <div className="hp-row">
-        <Hp side="You" current={snap.player.health} max={snap.player.maxHealth} tone="player" />
-        <Hp side="AI" current={snap.enemy.health} max={snap.enemy.maxHealth} tone="ai" />
+        <Hp side={blue} current={snap.player.health} max={snap.player.maxHealth} tone="player" />
+        <Hp side={red} current={snap.enemy.health} max={snap.enemy.maxHealth} tone="ai" />
       </div>
 
-      {(snap.phase === 'playerTurn' || snap.phase === 'charging') && (
+      {snap.demo && snap.phase !== 'ended' && (
+        <footer className="aim">
+          <p className="controls-hint">demo survey · drag to orbit · halt for sound · no turret input</p>
+        </footer>
+      )}
+
+      {(snap.phase === 'playerTurn' || snap.phase === 'charging') && !snap.demo && (
         <footer className="aim">
           <div className="readout">
             <span>BRG {deg(snap.bearing).toFixed(1)}°</span>
@@ -71,7 +89,14 @@ export function HUD({
 
       {snap.lastDamage && snap.phase === 'resolving' && (
         <div className="damage">
-          {snap.lastDamage.amount} dmg · {snap.lastDamage.side === 'player' ? 'your hull' : 'AI hull'}
+          {snap.lastDamage.amount} dmg ·{' '}
+          {snap.lastDamage.side === 'player'
+            ? snap.demo
+              ? 'blue hull'
+              : 'your hull'
+            : snap.demo
+              ? 'red hull'
+              : 'AI hull'}
         </div>
       )}
     </div>

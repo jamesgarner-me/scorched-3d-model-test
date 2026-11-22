@@ -19,11 +19,14 @@ export function useGame() {
 
   useEffect(() => {
     const onDown = (e: KeyboardEvent) => {
-      if (e.code === 'ArrowLeft') input.left = true
-      if (e.code === 'ArrowRight') input.right = true
-      if (e.code === 'ArrowUp') input.up = true
-      if (e.code === 'ArrowDown') input.down = true
-      if (e.code === 'Space') input.space = true
+      const demo = engine.getSnapshot().demo
+      if (!demo) {
+        if (e.code === 'ArrowLeft') input.left = true
+        if (e.code === 'ArrowRight') input.right = true
+        if (e.code === 'ArrowUp') input.up = true
+        if (e.code === 'ArrowDown') input.down = true
+        if (e.code === 'Space') input.space = true
+      }
       if (e.code === 'Escape') engine.togglePause()
       if (e.code === 'Backquote') engine.setDebug(!engine.getSnapshot().debug)
       if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space'].includes(e.code)) {

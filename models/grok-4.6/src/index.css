@@ -226,6 +226,10 @@ h2 {
   min-width: 10rem;
 }
 
+.plate.demo strong {
+  color: var(--safe);
+}
+
 .plate strong,
 .hp b {
   display: block;

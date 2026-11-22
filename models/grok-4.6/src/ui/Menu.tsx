@@ -3,12 +3,14 @@ import type { Difficulty, PresetId } from '../game/types.ts'
 export function Menu({
   preset,
   difficulty,
+  demo = false,
   onPreset,
   onDifficulty,
   onStart,
 }: {
   preset: PresetId
   difficulty: Difficulty
+  demo?: boolean
   onPreset: (preset: PresetId) => void
   onDifficulty: (difficulty: Difficulty) => void
   onStart: () => void
@@ -16,9 +18,15 @@ export function Menu({
   return (
     <div className="overlay menu">
       <div className="menu-frame">
-        <p className="kicker">Orbital fire-control // client survey</p>
+        <p className="kicker">
+          {demo ? 'Orbital fire-control // spectator survey' : 'Orbital fire-control // client survey'}
+        </p>
         <h1>Planetary Artillery</h1>
-        <p className="tag">SCORCHED 3D · one planet, two guns, no horizon to hide behind</p>
+        <p className="tag">
+          {demo
+            ? 'SCORCHED 3D · two automata, one world, no turret for you'
+            : 'SCORCHED 3D · one planet, two guns, no horizon to hide behind'}
+        </p>
 
         <section>
           <h2>World body</h2>
@@ -61,11 +69,13 @@ export function Menu({
         </section>
 
         <button type="button" className="start" onClick={onStart}>
-          Begin survey
+          {demo ? 'Begin demo' : 'Begin survey'}
         </button>
 
         <p className="hint">
-          ←→ bearing · ↑↓ elevation · hold space to charge · release to fire · drag to orbit
+          {demo
+            ? 'drag to orbit · halt for sound · no turret input'
+            : '←→ bearing · ↑↓ elevation · hold space to charge · release to fire · drag to orbit'}
         </p>
       </div>
     </div>
