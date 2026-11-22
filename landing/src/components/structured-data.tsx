@@ -21,6 +21,12 @@ export function StructuredData({ sites }: { sites: readonly ModelSite[] }) {
       position: index + 1,
       name: site.name,
       url: site.url,
+      item: {
+        '@type': 'VideoGame',
+        name: site.name,
+        url: site.url,
+        creator: { '@type': 'Organization', name: site.lab },
+      },
     })),
   }
 

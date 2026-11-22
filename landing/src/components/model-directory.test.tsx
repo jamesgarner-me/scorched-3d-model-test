@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 
@@ -9,18 +9,21 @@ const sites: ModelSite[] = [
   {
     folder: 'grok-4.6',
     name: 'Grok 4.6',
+    lab: 'xAI',
     status: 'live',
     url: 'https://scorched-3d-grok-46.vercel.app',
   },
   {
     folder: 'opus-5',
     name: 'Opus 5',
+    lab: 'Anthropic',
     status: 'live',
     url: 'https://scorched-3d-opus-5.vercel.app',
   },
   {
     folder: 'sonnet-5',
     name: 'Sonnet 5',
+    lab: 'Anthropic',
     status: 'pending',
   },
 ]
@@ -38,7 +41,6 @@ describe('ModelDirectory', () => {
     expect(play).toHaveAttribute('href', 'https://scorched-3d-grok-46.vercel.app')
     expect(play).toHaveAttribute('target', '_blank')
     expect(play).toHaveAttribute('rel', 'noopener noreferrer')
-    expect(play).toHaveAccessibleName(expect.stringContaining('models/grok-4.6'))
     expect(play).toHaveAccessibleName(expect.stringContaining('opens in a new tab'))
 
     const demo = screen.getByRole('link', { name: /^Demo Grok 4\.6/ })
@@ -52,6 +54,25 @@ describe('ModelDirectory', () => {
       'https://scorched-3d-opus-5.vercel.app',
       'https://scorched-3d-opus-5.vercel.app/?mode=demo',
     ])
+  })
+
+  // Labs are spelt by hand in the JSON ("xAI", not "XAI"), so the card must
+  // show them as written, deployed or not, without folding them into a link.
+  // The lab replaces the folder path, which only repeated the model name.
+  it('labels every build with its lab exactly as written', () => {
+    render(<ModelDirectory sites={sites} />)
+
+    expect(screen.queryByText(/models\//)).not.toBeInTheDocument()
+
+    const labs = screen
+      .getAllByRole('listitem')
+      .map((item) => within(item).getByText(/^(xAI|Anthropic)$/))
+    expect(labs.map((lab) => lab.textContent)).toEqual(['xAI', 'Anthropic', 'Anthropic'])
+    for (const lab of labs) expect(lab).toBeVisible()
+
+    for (const link of screen.getAllByRole('link')) {
+      expect(link).not.toHaveAccessibleName(expect.stringMatching(/xAI|Anthropic/))
+    }
   })
 
   // A model folder can be committed before its Vercel project exists, and a

@@ -77,7 +77,7 @@ Project names drop the dots from the folder name:
 | --- | --- |
 | `models/astra` | https://scorched-3d-astra.vercel.app |
 | `models/fable-5.1` | https://scorched-3d-fable-51.vercel.app |
-| `models/gemini-4-argon` | not deployed yet |
+| `models/gemini-4-argon` | https://scorched-3d-gemini-argon-4.vercel.app |
 | `models/grok-4.6` | https://scorched-3d-grok-46.vercel.app |
 | `models/opus-5` | https://scorched-3d-opus-5.vercel.app |
 
