@@ -18,6 +18,8 @@ const FLYOVER_SECONDS = 5;
 export function Scene() {
   const match = useGame((s) => s.match);
   const phase = useGame((s) => s.phase);
+  const demo = useGame((s) => s.demo);
+  const activeTank = useGame((s) => s.activeTank);
   const activeShot = useGame((s) => s.activeShot);
   const blast = useGame((s) => s.blast);
   const matchVersion = useGame((s) => s.matchVersion);
@@ -42,13 +44,16 @@ export function Scene() {
     resetPan();
   }, [matchVersion, match]);
 
-  // At the start of your turn, settle behind the turret so the shot reads immediately.
+  // At the start of a turn, settle behind the turret so the shot reads immediately.
+  // Watching a demo, that means whichever tank is ranging, not always the blue one.
   useEffect(() => {
-    if (!match || phase !== 'aim') return;
-    focus.snapAzimuth = (match.tanks.player.bearing + 205) * DEG;
+    if (!match) return;
+    if (phase !== 'aim' && !(demo && phase === 'aiThink')) return;
+    const subject = demo ? match.tanks[activeTank] : match.tanks.player;
+    focus.snapAzimuth = (subject.bearing + 205) * DEG;
     focus.snapPolar = 1.06;
     resetPan();
-  }, [phase, match]);
+  }, [phase, match, demo, activeTank]);
 
   useFrame((_, delta) => {
     perf.frameMillis = delta * 1000;
@@ -83,8 +88,9 @@ export function Scene() {
       return;
     }
 
-    focus.target.set(player.position.x, player.position.y, player.position.z);
-    focus.up.set(player.frame.up.x, player.frame.up.y, player.frame.up.z).normalize();
+    const subject = demo ? match.tanks[activeTank] : player;
+    focus.target.set(subject.position.x, subject.position.y, subject.position.z);
+    focus.up.set(subject.frame.up.x, subject.frame.up.y, subject.frame.up.z).normalize();
     focus.distance = 26;
   });
 

@@ -77,7 +77,11 @@ export class Match {
   readonly planet: Planet;
   readonly difficulty: Difficulty;
   readonly tanks: Record<TankId, TankState>;
-  readonly aiMemory: AiMemory;
+  /**
+   * One standing aim error per seat. Only the AI seat is used in a normal match;
+   * a demo drives both tanks from the solver, so each needs its own error to walk in.
+   */
+  readonly memories: Record<TankId, AiMemory>;
   /** Constant wind acceleration for the whole match, world space. */
   wind: Vec3;
   windSpeed: number;
@@ -96,7 +100,20 @@ export class Match {
     this.windSpeed = Math.sqrt(wind.x * wind.x + wind.y * wind.y + wind.z * wind.z);
     this.difficulty = difficulty;
     this.rng = makeRng(`${seed}:match`);
-    this.aiMemory = createAiMemory(difficulty, makeRng(`${seed}:ai`));
+    this.memories = {
+      player: createAiMemory(difficulty, makeRng(`${seed}:ai:player`)),
+      ai: createAiMemory(difficulty, makeRng(`${seed}:ai`)),
+    };
+  }
+
+  /** The enemy's standing aim error — the one a normal match cares about. */
+  get aiMemory(): AiMemory {
+    return this.memories.ai;
+  }
+
+  /** The standing aim error for whichever seat the solver is about to drive. */
+  memoryFor(id: TankId): AiMemory {
+    return this.memories[id];
   }
 
   /** The simulation view of this match. One shared world for guide, shell and AI. */
@@ -263,9 +280,9 @@ export class Match {
     return this.turn;
   }
 
-  /** Fold an AI shot's outcome back into its aim memory, so its shots walk in. */
-  noteAiResult(missDistance: number): void {
-    learnFromShot(this.aiMemory, missDistance, this.rng);
+  /** Fold a solved shot's outcome back into that seat's aim memory, so its shots walk in. */
+  noteAiResult(missDistance: number, shooter: TankId = 'ai'): void {
+    learnFromShot(this.memories[shooter], missDistance, this.rng);
   }
 
   /** Angular separation of the two tanks, in degrees — handy for the debug panel. */

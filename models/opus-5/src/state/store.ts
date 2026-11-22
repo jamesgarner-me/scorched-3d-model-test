@@ -34,6 +34,26 @@ export interface Blast {
   fatal: boolean;
 }
 
+/** `?mode=demo` turns the match into a spectator duel: both tanks are solver-driven. */
+export function readDemoMode(): boolean {
+  if (typeof window === 'undefined') return false;
+  return new URLSearchParams(window.location.search).get('mode') === 'demo';
+}
+
+const DEMO = readDemoMode();
+
+/** What a tank is called on screen. In a demo neither of them is "you". */
+export function tankName(id: TankId, demo = DEMO): string {
+  if (demo) return id === 'player' ? 'Blue' : 'Red';
+  return id === 'player' ? 'You' : 'Enemy';
+}
+
+/** The possessive form used in headlines: "Your tank" / "Blue tank". */
+export function tankTitle(id: TankId, demo = DEMO): string {
+  if (demo) return id === 'player' ? 'Blue tank' : 'Red tank';
+  return id === 'player' ? 'Your tank' : 'Enemy tank';
+}
+
 interface GameState {
   phase: Phase;
   match: Match | null;
@@ -41,6 +61,10 @@ interface GameState {
   preset: PresetId;
   difficulty: Difficulty;
   seedInput: string;
+  /** Spectator mode: both tanks are driven by the solver and aiming input is off. */
+  demo: boolean;
+  /** Whichever tank is taking the current turn. */
+  activeTank: TankId;
 
   bearing: number;
   elevation: number;
@@ -95,6 +119,8 @@ export const useGame = create<GameState>((set, get) => ({
   preset: 'earth',
   difficulty: 'medium',
   seedInput: '',
+  demo: DEMO,
+  activeTank: 'player',
 
   bearing: 0,
   elevation: 35,
@@ -136,6 +162,7 @@ export const useGame = create<GameState>((set, get) => ({
       winner: null,
       paused: false,
       statusMessage: '',
+      activeTank: 'player',
     });
 
     // Generation is usually fast; hold the loading screen long enough to be read.
@@ -176,12 +203,12 @@ export const useGame = create<GameState>((set, get) => ({
 
   skipFlyover() {
     if (get().phase !== 'flyover') return;
-    set({ phase: 'aim', statusMessage: 'Your turn — aim and fire' });
+    void beginTurn(set, get, 'player');
   },
 
   adjustAim(dBearing, dElevation) {
-    const { match, phase } = get();
-    if (!match || (phase !== 'aim' && phase !== 'charging')) return;
+    const { match, phase, demo } = get();
+    if (!match || demo || (phase !== 'aim' && phase !== 'charging')) return;
     const bearing = (get().bearing + dBearing + 360) % 360;
     const elevation = clamp(get().elevation + dElevation, 2, 88);
     match.tanks.player.bearing = bearing;
@@ -190,7 +217,7 @@ export const useGame = create<GameState>((set, get) => ({
   },
 
   beginCharge() {
-    if (get().phase !== 'aim') return;
+    if (get().demo || get().phase !== 'aim') return;
     audio.charge(true);
     set({ phase: 'charging', charging: true, power: 0 });
   },
@@ -201,8 +228,8 @@ export const useGame = create<GameState>((set, get) => ({
   },
 
   releaseCharge() {
-    const { match, charging } = get();
-    if (!match || !charging) return;
+    const { match, charging, demo } = get();
+    if (!match || demo || !charging) return;
     audio.charge(false);
     const aim: Aim = { bearing: get().bearing, elevation: get().elevation, power: get().power };
     set({ charging: false });
@@ -226,7 +253,9 @@ export const useGame = create<GameState>((set, get) => ({
     const fatal = damage.destroyed !== null;
     audio.impact(impact.kind, fatal);
 
-    if (activeShot.shooter === 'ai') match.noteAiResult(damage.distanceToTarget);
+    if (get().demo || activeShot.shooter === 'ai') {
+      match.noteAiResult(damage.distanceToTarget, activeShot.shooter);
+    }
 
     set((s) => ({
       terrainVersion: s.terrainVersion + 1,
@@ -281,11 +310,61 @@ function fireShot(set: Setter, get: Getter, shooter: TankId, aim: Aim): void {
   set({
     phase: 'flight',
     activeShot: { shooter, path },
+    activeTank: shooter,
     power: aim.power,
     bearing: aim.bearing,
     elevation: aim.elevation,
-    statusMessage: shooter === 'player' ? 'Shell away…' : 'Incoming!',
+    statusMessage: get().demo
+      ? `${tankName(shooter)} fires…`
+      : shooter === 'player'
+        ? 'Shell away…'
+        : 'Incoming!',
   });
+}
+
+/** Wait, then hold until the match is unpaused — a paused demo must not keep shooting. */
+async function waitUnpaused(get: Getter, ms: number): Promise<void> {
+  await wait(ms);
+  while (get().paused && get().match) await wait(120);
+}
+
+/**
+ * Hand the turn to `next`. Normally only the AI seat is solved; in a demo both seats
+ * are, using the same solver, memory and variance the enemy always used.
+ */
+async function beginTurn(set: Setter, get: Getter, next: TankId): Promise<void> {
+  const match = get().match;
+  if (!match) return;
+  const demo = get().demo;
+  set({ activeTank: next });
+
+  if (next === 'player' && !demo) {
+    set({
+      phase: 'aim',
+      bearing: match.tanks.player.bearing,
+      elevation: match.tanks.player.elevation,
+      power: match.tanks.player.lastPower,
+      statusMessage: 'Your turn — aim and fire',
+    });
+    return;
+  }
+
+  set({
+    phase: 'aiThink',
+    statusMessage: demo ? `${tankName(next)} is ranging…` : 'Enemy is ranging…',
+  });
+  await waitUnpaused(get, tuning.aiThinkTime * 1000);
+  if (!get().match || get().phase !== 'aiThink' || get().activeTank !== next) return;
+
+  const target: TankId = next === 'player' ? 'ai' : 'player';
+  const decision = decideShot(
+    match.world(),
+    match.tanks[next].position,
+    match.bodyCentre(target),
+    match.memoryFor(next),
+  );
+  perf.aiSolveMillis = decision.solveMillis;
+  fireShot(set, get, next, decision.aim);
 }
 
 async function advanceTurn(set: Setter, get: Getter): Promise<void> {
@@ -299,44 +378,21 @@ async function advanceTurn(set: Setter, get: Getter): Promise<void> {
     return;
   }
 
-  await wait(1400);
+  await waitUnpaused(get, 1400);
   if (!get().match) return;
   const next = match.endTurn();
   set({ round: match.round });
-
-  if (next === 'player') {
-    set({
-      phase: 'aim',
-      bearing: match.tanks.player.bearing,
-      elevation: match.tanks.player.elevation,
-      power: match.tanks.player.lastPower,
-      statusMessage: 'Your turn — aim and fire',
-    });
-    return;
-  }
-
-  set({ phase: 'aiThink', statusMessage: 'Enemy is ranging…' });
-  await wait(tuning.aiThinkTime * 1000);
-  if (!get().match || get().phase !== 'aiThink') return;
-
-  const decision = decideShot(
-    match.world(),
-    match.tanks.ai.position,
-    match.bodyCentre('player'),
-    match.aiMemory,
-  );
-  perf.aiSolveMillis = decision.solveMillis;
-  fireShot(set, get, 'ai', decision.aim);
+  await beginTurn(set, get, next);
 }
 
 function describeImpact(damage: DamageEvent, shooter: TankId): string {
   const target: TankId = shooter === 'player' ? 'ai' : 'player';
   const dealtToTarget = damage.dealt[target];
   const self = damage.dealt[shooter];
-  const who = shooter === 'player' ? 'You' : 'Enemy';
+  const who = tankName(shooter);
 
   if (damage.destroyed) {
-    return `${damage.destroyed === 'player' ? 'Your tank' : 'Enemy tank'} destroyed`;
+    return `${tankTitle(damage.destroyed)} destroyed`;
   }
   if (dealtToTarget > 0) {
     const label = damage.distanceToTarget < tuning.tankHitRadius * 1.4 ? 'Direct hit' : 'Hit';

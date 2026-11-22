@@ -266,6 +266,33 @@ describe('the AI', () => {
     expect(match.aiMemory.lastMiss).toBe(18);
   });
 
+  it('keeps a separate standing error per seat, so a demo can walk both tanks in', async () => {
+    const match = await newMatch('DEMO-MEMORY', 'earth', 'medium');
+    expect(match.memoryFor('ai')).toBe(match.aiMemory);
+    expect(match.memoryFor('player')).not.toBe(match.memoryFor('ai'));
+
+    match.noteAiResult(42, 'player');
+    match.noteAiResult(31, 'player');
+    expect(match.memoryFor('player').shots).toBe(2);
+    expect(match.memoryFor('player').lastMiss).toBe(31);
+    // The enemy seat is untouched by the blue gunner's ranging.
+    expect(match.memoryFor('ai').shots).toBe(0);
+    expect(match.memoryFor('ai').errorScale).toBe(1);
+  });
+
+  it('solves the blue seat with the same physics it solves the red one', async () => {
+    const match = await newMatch('DEMO-SOLVE', 'earth', 'hard');
+    const decision = decideShot(
+      match.world(),
+      match.tanks.player.position,
+      match.bodyCentre('ai'),
+      match.memoryFor('player'),
+    );
+    const outcome = match.fire('player', decision.aim);
+    expect(outcome.damage).not.toBeNull();
+    expect(outcome.damage!.distanceToTarget).toBeLessThan(tuning.blastRadius * 2);
+  });
+
   it('plays a whole match to a winner without stalling', async () => {
     const match = await newMatch('FULL', 'earth', 'medium');
     let rounds = 0;

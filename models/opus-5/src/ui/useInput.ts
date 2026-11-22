@@ -8,7 +8,7 @@ const AIM_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']);
 /**
  * Keyboard control. Arrow keys adjust the turret continuously while held; Space
  * charges and releases. Everything is gated on the phase, so input is locked while a
- * shot is in flight or resolving.
+ * shot is in flight or resolving — and entirely, bar camera and pause, during a demo.
  */
 export function useInput(): void {
   const held = useRef(new Set<string>());
@@ -43,6 +43,8 @@ export function useInput(): void {
         store().skipFlyover();
         return;
       }
+      // A demo spectator keeps the camera, pause and sound, but never the turret.
+      if (store().demo) return;
       if (AIM_KEYS.has(e.key)) {
         e.preventDefault();
         held.current.add(e.key);
@@ -82,7 +84,7 @@ export function useInput(): void {
       last = time;
       const state = store();
 
-      if (!state.paused && (state.phase === 'aim' || state.phase === 'charging')) {
+      if (!state.paused && !state.demo && (state.phase === 'aim' || state.phase === 'charging')) {
         const rate = tuning.aimRate * dt;
         let dBearing = 0;
         let dElevation = 0;
