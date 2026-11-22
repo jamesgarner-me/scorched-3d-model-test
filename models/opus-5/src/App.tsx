@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { DebugPanel } from './ui/DebugPanel';
 import { Hud } from './ui/Hud';
@@ -12,6 +13,16 @@ export function App() {
   const match = useGame((s) => s.match);
   const paused = useGame((s) => s.paused);
   const debugOpen = useGame((s) => s.debugOpen);
+  const demo = useGame((s) => s.demo);
+  const startMatch = useGame((s) => s.startMatch);
+  const demoStarted = useRef(false);
+
+  // A demo is launched from a link, so it opens straight into the duel rather than the menu.
+  useEffect(() => {
+    if (!demo || demoStarted.current) return;
+    demoStarted.current = true;
+    void startMatch();
+  }, [demo, startMatch]);
 
   const showHud = match !== null && ['aim', 'charging', 'flight', 'impact', 'aiThink'].includes(phase);
 

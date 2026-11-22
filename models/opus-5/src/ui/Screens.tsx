@@ -1,11 +1,12 @@
 import { DIFFICULTIES, type Difficulty } from '../game/ai';
 import { PRESETS, PRESET_IDS } from '../game/presets';
-import { useGame } from '../state/store';
+import { tankName, useGame } from '../state/store';
 
 export function StartMenu() {
   const preset = useGame((s) => s.preset);
   const difficulty = useGame((s) => s.difficulty);
   const seedInput = useGame((s) => s.seedInput);
+  const demo = useGame((s) => s.demo);
   const setPreset = useGame((s) => s.setPreset);
   const setDifficulty = useGame((s) => s.setDifficulty);
   const setSeedInput = useGame((s) => s.setSeedInput);
@@ -16,8 +17,9 @@ export function StartMenu() {
       <div className="overlay-card fade-in">
         <h1 className="title">Planetary Artillery</h1>
         <p className="subtitle">
-          A turn-based duel on a small, procedurally generated world. Gravity pulls towards the planet's
-          centre, wind bends every shell, and the craters you carve stay carved. You shoot first.
+          {demo
+            ? "A demo duel on a small, procedurally generated world. Two computer gunners trade shots while you keep the camera: gravity pulls towards the planet's centre, wind bends every shell, and the craters stay carved. Blue shoots first."
+            : "A turn-based duel on a small, procedurally generated world. Gravity pulls towards the planet's centre, wind bends every shell, and the craters you carve stay carved. You shoot first."}
         </p>
 
         <span className="label">World</span>
@@ -35,7 +37,7 @@ export function StartMenu() {
           ))}
         </div>
 
-        <span className="label">Opponent</span>
+        <span className="label">{demo ? 'Gunners' : 'Opponent'}</span>
         <div className="choice-grid three" style={{ marginTop: 8 }}>
           {DIFFICULTIES.map((d) => (
             <button
@@ -63,21 +65,31 @@ export function StartMenu() {
 
         <div className="actions">
           <button className="btn primary" onClick={() => void startMatch()}>
-            Start match
+            {demo ? 'Start demo' : 'Start match'}
           </button>
         </div>
 
         <div className="keyhint-list">
-          <kbd>← →</kbd>
-          <span>Turret bearing</span>
-          <kbd>↑ ↓</kbd>
-          <span>Cannon elevation</span>
-          <kbd>Space</kbd>
-          <span>Hold to charge power, release to fire</span>
+          {!demo && (
+            <>
+              <kbd>← →</kbd>
+              <span>Turret bearing</span>
+              <kbd>↑ ↓</kbd>
+              <span>Cannon elevation</span>
+              <kbd>Space</kbd>
+              <span>Hold to charge power, release to fire</span>
+            </>
+          )}
           <kbd>Drag / Scroll</kbd>
           <span>Orbit and zoom the camera</span>
           <kbd>Esc</kbd>
           <span>Pause</span>
+          {demo && (
+            <>
+              <kbd>M</kbd>
+              <span>Mute and unmute</span>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -176,6 +188,7 @@ export function WinnerOverlay() {
   const match = useGame((s) => s.match);
   const winner = useGame((s) => s.winner);
   const round = useGame((s) => s.round);
+  const demo = useGame((s) => s.demo);
   const startMatch = useGame((s) => s.startMatch);
   const returnToMenu = useGame((s) => s.returnToMenu);
   if (!match) return null;
@@ -184,12 +197,16 @@ export function WinnerOverlay() {
   return (
     <div className="overlay">
       <div className="overlay-card fade-in" style={{ maxWidth: 480 }}>
-        <div className="winner-tag">Match over</div>
-        <h2 className={`winner-title ${playerWon ? 'win' : 'loss'}`}>{playerWon ? 'Victory' : 'Defeat'}</h2>
+        <div className="winner-tag">{demo ? 'Demo over' : 'Match over'}</div>
+        <h2 className={`winner-title ${demo || playerWon ? 'win' : 'loss'}`}>
+          {demo ? `${tankName(winner ?? 'player')} wins` : playerWon ? 'Victory' : 'Defeat'}
+        </h2>
         <p className="subtitle" style={{ marginTop: -6 }}>
-          {playerWon
-            ? 'The enemy tank is a smoking crater. The planet keeps the scars.'
-            : 'Your tank is gone. The enemy read the wind better than you did.'}
+          {demo
+            ? 'One gunner read the wind better than the other. The planet keeps the scars either way.'
+            : playerWon
+              ? 'The enemy tank is a smoking crater. The planet keeps the scars.'
+              : 'Your tank is gone. The enemy read the wind better than you did.'}
         </p>
 
         <div className="stat-grid">
@@ -209,7 +226,7 @@ export function WinnerOverlay() {
 
         <div className="actions">
           <button className="btn primary" onClick={() => void startMatch({ seed: '' })}>
-            New match
+            {demo ? 'New demo' : 'New match'}
           </button>
           <button className="btn ghost" onClick={returnToMenu}>
             Main menu

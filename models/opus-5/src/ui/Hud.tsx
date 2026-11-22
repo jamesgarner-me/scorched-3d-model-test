@@ -1,4 +1,4 @@
-import { useGame } from '../state/store';
+import { tankName, useGame } from '../state/store';
 
 function Health({ name, value, max, color, align }: { name: string; value: number; max: number; color: string; align?: 'right' }) {
   const fraction = Math.max(0, value) / max;
@@ -57,6 +57,8 @@ export function Hud() {
   const statusMessage = useGame((s) => s.statusMessage);
   const round = useGame((s) => s.round);
   const muted = useGame((s) => s.muted);
+  const demo = useGame((s) => s.demo);
+  const activeTank = useGame((s) => s.activeTank);
   const showControls = useGame((s) => s.showControls);
   const setPaused = useGame((s) => s.setPaused);
   const setShowControls = useGame((s) => s.setShowControls);
@@ -64,12 +66,15 @@ export function Hud() {
 
   if (!match) return null;
   const maxHealth = match.tanks.player.maxHealth;
-  const lastPower = match.tanks.player.lastPower;
-  const yourTurn = phase === 'aim' || phase === 'charging';
+  const lastPower = match.tanks[demo ? activeTank : 'player'].lastPower;
+  const yourTurn = !demo && (phase === 'aim' || phase === 'charging');
+  const enemyActive = demo ? activeTank === 'ai' : phase === 'aiThink' || phase === 'flight';
 
   const turnLabel =
     phase === 'aiThink'
-      ? 'Enemy ranging'
+      ? demo
+        ? `${tankName(activeTank)} ranging`
+        : 'Enemy ranging'
       : phase === 'flight'
         ? 'Shell in flight'
         : phase === 'impact'
@@ -82,12 +87,17 @@ export function Hud() {
     <div className="hud">
       <div className="hud-top">
         <div>
-          <Health name="Your tank" value={playerHealth} max={maxHealth} color="var(--player)" />
+          <Health
+            name={demo ? 'Blue tank' : 'Your tank'}
+            value={playerHealth}
+            max={maxHealth}
+            color="var(--player)"
+          />
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <div className={`turn-chip${phase === 'aiThink' || phase === 'flight' ? ' enemy' : ''}`}>
-            Round {round} · {turnLabel}
+          <div className={`turn-chip${enemyActive ? ' enemy' : ''}`}>
+            {demo && 'Demo · '}Round {round} · {turnLabel}
           </div>
           <div className="panel wind">
             <WindCompass windBearing={wind.bearing} turretBearing={bearing} strength={wind.strength} />
@@ -104,7 +114,13 @@ export function Hud() {
         </div>
 
         <div>
-          <Health name="Enemy tank" value={aiHealth} max={maxHealth} color="var(--enemy)" align="right" />
+          <Health
+            name={demo ? 'Red tank' : 'Enemy tank'}
+            value={aiHealth}
+            max={maxHealth}
+            color="var(--enemy)"
+            align="right"
+          />
         </div>
       </div>
 
@@ -124,7 +140,7 @@ export function Hud() {
 
         <div className="panel power">
           <div className="power-head">
-            <span className="label">Power</span>
+            <span className="label">{demo ? 'Last shot power' : 'Power'}</span>
             <span className="value" style={{ fontSize: 16, color: charging ? 'var(--amber)' : 'var(--text)' }}>
               {power.toFixed(0)}
             </span>
@@ -134,7 +150,13 @@ export function Hud() {
             <div className="power-marker" style={{ left: `${lastPower}%` }} title="Last shot" />
           </div>
           <div className="power-hint">
-            {charging ? 'Release Space to fire' : yourTurn ? 'Hold Space to charge · Arrows to aim' : turnLabel}
+            {demo
+              ? `Both tanks are computer-controlled — ${tankName(activeTank)} is on the guns`
+              : charging
+                ? 'Release Space to fire'
+                : yourTurn
+                  ? 'Hold Space to charge · Arrows to aim'
+                  : turnLabel}
           </div>
         </div>
 
@@ -152,13 +174,22 @@ export function Hud() {
               <button className="hints-dismiss" onClick={() => setShowControls(false)} title="Hide controls">
                 ×
               </button>
-              <div>
-                <kbd>←</kbd> <kbd>→</kbd> bearing · <kbd>↑</kbd> <kbd>↓</kbd> elevation
-              </div>
-              <div>
-                <kbd>Space</kbd> hold to charge, release to fire
-              </div>
+              {!demo && (
+                <>
+                  <div>
+                    <kbd>←</kbd> <kbd>→</kbd> bearing · <kbd>↑</kbd> <kbd>↓</kbd> elevation
+                  </div>
+                  <div>
+                    <kbd>Space</kbd> hold to charge, release to fire
+                  </div>
+                </>
+              )}
               <div>Drag to orbit · Shift-drag to pan · Scroll to zoom</div>
+              {demo && (
+                <div>
+                  <kbd>Esc</kbd> pause · <kbd>M</kbd> sound
+                </div>
+              )}
             </div>
           ) : (
             <button className="icon-btn" onClick={() => setShowControls(true)} title="Show controls">
