@@ -172,6 +172,16 @@ body,
   font-size: 0.72rem;
 }
 
+.turn-banner__demo {
+  background: rgba(56, 189, 248, 0.22);
+  border: 1px solid rgba(56, 189, 248, 0.55);
+  color: #e0f2fe;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+}
+
 .env-strip {
   display: flex;
   flex-wrap: wrap;

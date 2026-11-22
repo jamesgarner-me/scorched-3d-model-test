@@ -38,17 +38,21 @@ export function solveAiTurn(
   history: ReadonlyArray<AiShotMemory>,
   seed: string,
   turn: number,
+  shooterId: TurnOwner = 'ai',
 ): AiSolveOutput {
   const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
 
-  const aiTank = tanks.ai;
-  const playerTank = tanks.player;
-  const rng = new SeededRandom(`${seed}::ai-turn::${turn}::${difficulty}`);
+  const targetId: TurnOwner = shooterId === 'ai' ? 'player' : 'ai';
+  const shooterTank = tanks[shooterId];
+  const targetTank = tanks[targetId];
+  const rng = new SeededRandom(
+    `${seed}::ai-turn::${shooterId}::${turn}::${difficulty}`,
+  );
 
-  // Compute direct great-circle bearing from AI to Player
-  const chordToPlayer = subVec3(playerTank.position, aiTank.position);
-  const northComp = dotVec3(chordToPlayer, aiTank.frame.north);
-  const eastComp = dotVec3(chordToPlayer, aiTank.frame.east);
+  // Compute direct great-circle bearing from shooter to target
+  const chordToTarget = subVec3(targetTank.position, shooterTank.position);
+  const northComp = dotVec3(chordToTarget, shooterTank.frame.north);
+  const eastComp = dotVec3(chordToTarget, shooterTank.frame.east);
   const directBearingDeg =
     ((Math.atan2(eastComp, northComp) * 180) / Math.PI + 360) % 360;
 
@@ -82,14 +86,14 @@ export function solveAiTurn(
     const candidateBearing = (directBearingDeg + bOff + 360) % 360;
     for (const elev of elevations) {
       for (const pwr of powers) {
-        const sim = simulateShot(planet, aiTank, tanks, perceivedWind, tuning, {
-          shooterId: 'ai',
+        const sim = simulateShot(planet, shooterTank, tanks, perceivedWind, tuning, {
+          shooterId,
           bearingDeg: candidateBearing,
           elevationDeg: elev,
           power: pwr,
           varianceSeed: null,
         });
-        const dist = distanceVec3(sim.impactPosition, playerTank.position);
+        const dist = distanceVec3(sim.impactPosition, targetTank.position);
         if (dist < bestDistance) {
           bestDistance = dist;
           bestBearing = candidateBearing;
@@ -130,14 +134,14 @@ export function solveAiTurn(
           const candE = Math.max(12, Math.min(82, centerE + dE));
           const candP = Math.max(15, Math.min(99, centerP + dP));
 
-          const sim = simulateShot(planet, aiTank, tanks, perceivedWind, tuning, {
-            shooterId: 'ai',
+          const sim = simulateShot(planet, shooterTank, tanks, perceivedWind, tuning, {
+            shooterId,
             bearingDeg: candB,
             elevationDeg: candE,
             power: candP,
             varianceSeed: null,
           });
-          const dist = distanceVec3(sim.impactPosition, playerTank.position);
+          const dist = distanceVec3(sim.impactPosition, targetTank.position);
           if (dist < bestDistance) {
             bestDistance = dist;
             bestBearing = candB;
@@ -195,11 +199,11 @@ export function solveAiTurn(
 
   return {
     shotInput: {
-      shooterId: 'ai',
+      shooterId,
       bearingDeg: chosenBearing,
       elevationDeg: chosenElevation,
       power: chosenPower,
-      varianceSeed: `${seed}::shot-variance::ai::${turn}`,
+      varianceSeed: `${seed}::shot-variance::${shooterId}::${turn}`,
     },
     solveTimeMs: Math.max(0.1, Math.round((endTime - startTime) * 100) / 100),
     idealBearingDeg: bestBearing,

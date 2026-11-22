@@ -15,6 +15,7 @@ interface WinnerOverlayProps {
   cratersCount: number;
   presetId: PlanetPresetId;
   difficulty: AiDifficulty;
+  demoMode?: boolean;
   onNewMatch: () => void;
 }
 
@@ -25,9 +26,26 @@ export const WinnerOverlay: React.FC<WinnerOverlayProps> = ({
   cratersCount,
   presetId,
   difficulty,
+  demoMode = false,
   onNewMatch,
 }) => {
   const isPlayerVictory = winner === 'player';
+
+  const titleText = demoMode
+    ? isPlayerVictory
+      ? 'Vanguard-1 Victory!'
+      : 'Ares Automaton Victory!'
+    : isPlayerVictory
+      ? 'Planetary Victory!'
+      : 'Tank Destroyed — Defeat';
+
+  const subtitleText = demoMode
+    ? isPlayerVictory
+      ? 'Vanguard-1 AI zeroed in across the planetary curvature and shattered Ares Automaton.'
+      : 'Ares Automaton AI calibrated for wind and gravity to eliminate Vanguard-1.'
+    : isPlayerVictory
+      ? 'Your ballistic calculation conquered the curvature and shattered the enemy automaton.'
+      : 'The AI zeroed in on your coordinates across the horizon.';
 
   return (
     <div
@@ -39,20 +57,20 @@ export const WinnerOverlay: React.FC<WinnerOverlayProps> = ({
     >
       <div className="modal-card winner-card">
         <div
-          className={`winner-card__icon ${isPlayerVictory ? 'winner-card__icon--victory' : 'winner-card__icon--defeat'}`}
+          className={`winner-card__icon ${demoMode || isPlayerVictory ? 'winner-card__icon--victory' : 'winner-card__icon--defeat'}`}
         >
-          {isPlayerVictory ? <Award size={40} /> : <ShieldAlert size={40} />}
+          {demoMode || isPlayerVictory ? (
+            <Award size={40} />
+          ) : (
+            <ShieldAlert size={40} />
+          )}
         </div>
 
         <h2 id="winner-modal-title" className="winner-card__title">
-          {isPlayerVictory ? 'Planetary Victory!' : 'Tank Destroyed — Defeat'}
+          {titleText}
         </h2>
 
-        <p className="winner-card__subtitle">
-          {isPlayerVictory
-            ? 'Your ballistic calculation conquered the curvature and shattered the enemy automaton.'
-            : 'The AI zeroed in on your coordinates across the horizon.'}
-        </p>
+        <p className="winner-card__subtitle">{subtitleText}</p>
 
         <div className="winner-stats">
           <div className="winner-stat">
