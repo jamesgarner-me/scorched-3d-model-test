@@ -96,8 +96,11 @@ tuning surface live.
 58. As a spectator, I want the blue (normally player) tank to still fire first in a demo, so that the turn order matches a normal match.
 59. As a spectator, I want to keep orbiting, panning, and zooming the camera, pausing, and toggling sound during a demo, while aiming and firing inputs are disabled, so that I can watch without interfering.
 60. As a spectator, I want the HUD and winner overlay to say it is a demo and name the tanks by side rather than "you" and "AI", so that the outcome reads correctly.
-61. As a spectator, I want New Match at the end of a demo to start another demo, so that I can keep watching.
+61. As a spectator or player, I want New Match to keep the current mode by default, so that I can keep watching or keep playing without choosing again.
 62. As a player, I want the bare URL, or any other query, to start the normal player-versus-computer game unchanged, so that demo mode never gets in the way of playing.
+63. As a player or spectator, I want Escape to open a menu at any point in a match — aiming, shot in flight, or AI thinking — offering a new match as either "you vs computer" or "computer vs computer", with the current mode marked, so that I can switch modes without editing the URL.
+64. As a player or spectator, I want the winner overlay to offer the same two choices, so that the end of a match is also a place to switch modes.
+65. As a player or spectator, I want the URL to follow the mode I pick, without a page reload, so that the address I share always opens what I am looking at.
 
 
 ## Further Notes
@@ -110,8 +113,15 @@ tuning surface live.
   45% guide opacity, etc.) are initial values, tunable via TuningRegistry, not
   hard constraints — except the explicit fixed rules (no crater cap, no crater
   fade, terrain removal only, symmetry not required).
-- Demo mode is selected only by the exact query `mode=demo`, read once at load;
-  the directory site links to each build both bare (Play) and with
-  `?mode=demo` (Demo). A paused demo must not fire, and the AI must not see
-  hidden information about either tank.
+- The exact query `mode=demo` sets the starting mode; after that the mode is
+  game state, changed only from the Escape menu or the winner overlay. Picking a
+  mode updates the URL in place with `history.replaceState` — adding
+  `mode=demo` or removing `mode`, leaving any other query untouched — so there is
+  no reload and Back does not step between modes. The directory site links to
+  each build both bare (Play) and with `?mode=demo` (Demo).
+- Switching mode starts a fresh match and must leave nothing of the old one
+  running: pending AI turns, a shot in flight, and AI miss memory are discarded,
+  and input locks, tank names, HUD wording, and camera focus follow the new
+  mode. A paused demo must not fire, and the AI must not see hidden
+  information about either tank.
   
