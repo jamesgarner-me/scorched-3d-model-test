@@ -26,30 +26,38 @@ const sites: ModelSite[] = [
 ]
 
 describe('ModelDirectory', () => {
-  // The whole purpose of the page: one working outbound link per deployed
-  // build, in the order given, announced as leaving the site.
-  it('lists every deployed build as a link to its own deployment', () => {
+  // The whole purpose of the page: every deployed build can be launched as
+  // player versus computer or as a computer versus computer demo, in the order
+  // given, each announced as leaving the site.
+  it('offers a play link and a demo link for every deployed build', () => {
     render(<ModelDirectory sites={sites} />)
 
     expect(screen.getAllByRole('listitem')).toHaveLength(sites.length)
 
-    const grok = screen.getByRole('link', { name: /Grok 4\.6/ })
-    expect(grok).toHaveAttribute('href', 'https://scorched-3d-grok-46.vercel.app')
-    expect(grok).toHaveAttribute('target', '_blank')
-    expect(grok).toHaveAttribute('rel', 'noopener noreferrer')
-    expect(grok).toHaveAccessibleName(expect.stringContaining('models/grok-4.6'))
-    expect(grok).toHaveAccessibleName(expect.stringContaining('opens in a new tab'))
+    const play = screen.getByRole('link', { name: /^Play Grok 4\.6/ })
+    expect(play).toHaveAttribute('href', 'https://scorched-3d-grok-46.vercel.app')
+    expect(play).toHaveAttribute('target', '_blank')
+    expect(play).toHaveAttribute('rel', 'noopener noreferrer')
+    expect(play).toHaveAccessibleName(expect.stringContaining('models/grok-4.6'))
+    expect(play).toHaveAccessibleName(expect.stringContaining('opens in a new tab'))
+
+    const demo = screen.getByRole('link', { name: /^Demo Grok 4\.6/ })
+    expect(demo).toHaveAttribute('href', 'https://scorched-3d-grok-46.vercel.app/?mode=demo')
+    expect(demo).toHaveAttribute('target', '_blank')
+    expect(demo).toHaveAttribute('rel', 'noopener noreferrer')
 
     expect(screen.getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual([
       'https://scorched-3d-grok-46.vercel.app',
+      'https://scorched-3d-grok-46.vercel.app/?mode=demo',
       'https://scorched-3d-opus-5.vercel.app',
+      'https://scorched-3d-opus-5.vercel.app/?mode=demo',
     ])
   })
 
   // A model folder can be committed before its Vercel project exists, and a
   // link with nowhere to go is worse than no link: the row must still render,
-  // say so, and stay out of the tab order.
-  it('renders a build with no deployment as an inert row rather than a link', async () => {
+  // say so, offer neither launch, and stay out of the tab order.
+  it('renders a build with no deployment as an inert row rather than links', async () => {
     const user = userEvent.setup()
     render(<ModelDirectory sites={sites} />)
 
@@ -57,11 +65,10 @@ describe('ModelDirectory', () => {
     expect(screen.getByText('Sonnet 5')).toBeVisible()
     expect(screen.getByText('Not deployed')).toBeVisible()
 
-    await user.tab()
-    expect(screen.getByRole('link', { name: /Grok 4\.6/ })).toHaveFocus()
-
-    await user.tab()
-    expect(screen.getByRole('link', { name: /Opus 5/ })).toHaveFocus()
+    for (const name of [/^Play Grok/, /^Demo Grok/, /^Play Opus/, /^Demo Opus/]) {
+      await user.tab()
+      expect(screen.getByRole('link', { name })).toHaveFocus()
+    }
 
     // Nothing else in the list is focusable, so focus falls out of it entirely.
     await user.tab()
